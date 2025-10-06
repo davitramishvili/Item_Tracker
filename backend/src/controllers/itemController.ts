@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { ItemModel } from '../models/Item';
+import { HistoryModel } from '../models/History';
 
 // Get all items for the authenticated user
 export const getItems = async (req: Request, res: Response): Promise<void> => {
@@ -75,6 +76,17 @@ export const updateItem = async (req: Request, res: Response): Promise<void> => 
     if (!existingItem) {
       res.status(404).json({ error: 'Item not found' });
       return;
+    }
+
+    // Track quantity changes
+    if (updates.quantity !== undefined && updates.quantity !== existingItem.quantity) {
+      await HistoryModel.createHistoryEntry({
+        item_id: itemId,
+        user_id: userId,
+        quantity_before: existingItem.quantity || 0,
+        quantity_after: updates.quantity,
+        change_amount: updates.quantity - (existingItem.quantity || 0)
+      });
     }
 
     // Trim string fields

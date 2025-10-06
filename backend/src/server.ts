@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import itemRoutes from './routes/itemRoutes';
+import historyRoutes from './routes/historyRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -27,8 +28,8 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
+app.use('/api/history', historyRoutes);
 // app.use('/api/users', userRoutes);
-// app.use('/api/history', historyRoutes);
 
 // 404 handler
 app.use((req, res) => {

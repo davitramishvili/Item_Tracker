@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import type { Item, CreateItemData, UpdateItemData } from '../types/item';
 import { itemService } from '../services/itemService';
+import { historyService } from '../services/historyService';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -24,6 +25,7 @@ const Dashboard = () => {
     category: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [snapshotMessage, setSnapshotMessage] = useState('');
 
   const handleLogout = () => {
     logout();
@@ -137,6 +139,24 @@ const Dashboard = () => {
     }
   };
 
+  const handleCreateSnapshot = async () => {
+    try {
+      setSnapshotMessage('Creating snapshot...');
+      const result = await historyService.createManualSnapshot();
+
+      if (result.updated) {
+        setSnapshotMessage(`✓ Snapshot updated! ${result.count} item(s) saved.`);
+      } else {
+        setSnapshotMessage(`✓ Snapshot created! ${result.count} item(s) saved.`);
+      }
+
+      setTimeout(() => setSnapshotMessage(''), 5000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to create snapshot');
+      setSnapshotMessage('');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
       <nav className="bg-white dark:bg-gray-800 shadow-sm transition-colors">
@@ -176,13 +196,36 @@ const Dashboard = () => {
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">My Items</h2>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              + Add Item
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate('/history')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+                title="View snapshot history"
+              >
+                📊 History
+              </button>
+              <button
+                onClick={handleCreateSnapshot}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                title="Create a snapshot of all current items"
+              >
+                📸 Snapshot
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                + Add Item
+              </button>
+            </div>
           </div>
+
+          {/* Snapshot Success Message */}
+          {snapshotMessage && (
+            <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/30 border-l-4 border-green-400 dark:border-green-500 text-green-700 dark:text-green-300">
+              {snapshotMessage}
+            </div>
+          )}
 
           {/* Grand Total Section */}
           {!loading && items.length > 0 && (() => {
