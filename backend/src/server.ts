@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import authRoutes from './routes/authRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -22,8 +23,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server is running' });
 });
 
-// API Routes will be added here
-// app.use('/api/auth', authRoutes);
+// API Routes
+app.use('/api/auth', authRoutes);
 // app.use('/api/users', userRoutes);
 // app.use('/api/items', itemRoutes);
 // app.use('/api/history', historyRoutes);

@@ -6,7 +6,10 @@
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
       "Bash(npm create:*)",
-      "Bash(npx tailwindcss init:*)"
+      "Bash(npx tailwindcss init:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nPhase 2: Complete authentication system backend\n\nBackend Features:\n- User model with full CRUD operations\n- JWT token generation and verification\n- Password hashing with bcrypt\n- Email verification system (development mode)\n- Password reset functionality\n- Input validation with Joi\n- Auth middleware for protected routes\n- Complete auth API endpoints\n\nAPI Routes Implemented:\n- POST /api/auth/register - User registration\n- POST /api/auth/login - User login with JWT\n- GET /api/auth/verify-email - Email verification\n- POST /api/auth/forgot-password - Request password reset\n- POST /api/auth/reset-password - Reset password with token\n- POST /api/auth/logout - Logout endpoint\n\nTesting:\n- All endpoints tested and working\n- Registration, verification, and login flow validated\n- JWT tokens generating correctly\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
