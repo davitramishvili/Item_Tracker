@@ -36,7 +36,7 @@ export const getItem = async (req: Request, res: Response): Promise<void> => {
 export const createItem = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const { name, description, quantity, category, image_url, location } = req.body;
+    const { name, description, quantity, category, price_per_unit, currency } = req.body;
 
     // Validation
     if (!name || name.trim() === '') {
@@ -50,14 +50,16 @@ export const createItem = async (req: Request, res: Response): Promise<void> => 
       description: description?.trim(),
       quantity: quantity || 1,
       category: category?.trim(),
-      image_url: image_url?.trim(),
-      location: location?.trim(),
+      price_per_unit: price_per_unit || 0,
+      currency: currency || 'USD',
     });
 
     res.status(201).json({ message: 'Item created successfully', item });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create item error:', error);
-    res.status(500).json({ error: 'Failed to create item' });
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ error: 'Failed to create item', details: error.message });
   }
 };
 

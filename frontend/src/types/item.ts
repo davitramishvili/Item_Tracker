@@ -4,9 +4,9 @@ export interface Item {
   name: string;
   description?: string;
   quantity: number;
+  price_per_unit?: number;
+  currency?: 'GEL' | 'USD';
   category?: string;
-  image_url?: string;
-  location?: string;
   created_at: string;
   updated_at: string;
 }
@@ -15,18 +15,18 @@ export interface CreateItemData {
   name: string;
   description?: string;
   quantity?: number;
+  price_per_unit?: number;
+  currency?: 'GEL' | 'USD';
   category?: string;
-  image_url?: string;
-  location?: string;
 }
 
 export interface UpdateItemData {
   name?: string;
   description?: string;
   quantity?: number;
+  price_per_unit?: number;
+  currency?: 'GEL' | 'USD';
   category?: string;
-  image_url?: string;
-  location?: string;
 }
 
 export interface ItemsResponse {

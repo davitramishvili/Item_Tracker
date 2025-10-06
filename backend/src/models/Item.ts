@@ -7,9 +7,9 @@ export interface Item {
   name: string;
   description?: string;
   quantity?: number;
+  price_per_unit?: number;
+  currency?: 'GEL' | 'USD';
   category?: string;
-  image_url?: string;
-  location?: string;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -36,16 +36,16 @@ export class ItemModel {
   // Create a new item
   static async create(item: Item): Promise<Item> {
     const [result] = await promisePool.query<ResultSetHeader>(
-      `INSERT INTO items (user_id, name, description, quantity, category, image_url, location)
+      `INSERT INTO items (user_id, name, description, quantity, price_per_unit, currency, category)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         item.user_id,
         item.name,
         item.description || null,
         item.quantity || 1,
+        item.price_per_unit || 0,
+        item.currency || 'USD',
         item.category || null,
-        item.image_url || null,
-        item.location || null,
       ]
     );
 
@@ -77,13 +77,13 @@ export class ItemModel {
       fields.push('category = ?');
       values.push(updates.category);
     }
-    if (updates.image_url !== undefined) {
-      fields.push('image_url = ?');
-      values.push(updates.image_url);
+    if (updates.price_per_unit !== undefined) {
+      fields.push('price_per_unit = ?');
+      values.push(updates.price_per_unit);
     }
-    if (updates.location !== undefined) {
-      fields.push('location = ?');
-      values.push(updates.location);
+    if (updates.currency !== undefined) {
+      fields.push('currency = ?');
+      values.push(updates.currency);
     }
 
     if (fields.length === 0) {
