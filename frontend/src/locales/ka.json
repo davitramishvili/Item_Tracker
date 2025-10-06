@@ -1,0 +1,81 @@
+{
+  "nav": {
+    "itemTracker": "ნივთების აღრიცხვა",
+    "dashboard": "მთავარი",
+    "welcome": "გამარჯობა, {{name}}!",
+    "logout": "გასვლა",
+    "darkMode": "მუქი რეჟიმი",
+    "lightMode": "ნათელი რეჟიმი"
+  },
+  "dashboard": {
+    "myItems": "ჩემი ნივთები",
+    "history": "ისტორია",
+    "snapshot": "სურათი",
+    "addItem": "დამატება",
+    "noItems": "ჯერ არ გაქვთ ნივთები. დაამატეთ თქვენი პირველი ნივთი!",
+    "loadingItems": "იტვირთება...",
+    "grandTotal": "სრული ჯამი",
+    "snapshotCreating": "იქმნება სურათი...",
+    "snapshotCreated": "✓ სურათი შეიქმნა! {{count}} ნივთი შენახულია.",
+    "snapshotUpdated": "✓ სურათი განახლდა! {{count}} ნივთი შენახულია."
+  },
+  "item": {
+    "quantity": "რაოდენობა",
+    "pricePerUnit": "ფასი ერთეულზე",
+    "total": "ჯამი",
+    "edit": "რედაქტირება",
+    "delete": "წაშლა",
+    "decrease": "შემცირება",
+    "increase": "გაზრდა",
+    "deleteConfirm": "დარწმუნებული ხართ, რომ გსურთ ამ ნივთის წაშლა?"
+  },
+  "form": {
+    "name": "სახელი",
+    "description": "აღწერა",
+    "quantity": "რაოდენობა",
+    "pricePerUnit": "ფასი ერთეულზე",
+    "currency": "ვალუტა",
+    "category": "კატეგორია",
+    "cancel": "გაუქმება",
+    "save": "შენახვა",
+    "adding": "ემატება...",
+    "updating": "განახლდება...",
+    "addNewItem": "ახალი ნივთის დამატება",
+    "editItem": "ნივთის რედაქტირება",
+    "updateItem": "განახლება",
+    "required": "*"
+  },
+  "history": {
+    "snapshotHistory": "სურათების ისტორია",
+    "selectDate": "აირჩიეთ თარიღი",
+    "snapshotTotal": "სურათის ჯამი ({{date}})",
+    "noSnapshots": "სურათები არ მოიძებნა {{date}}-ისთვის",
+    "tryDifferentDate": "სცადეთ სხვა თარიღის არჩევა ან შექმენით სურათი მთავარი გვერდიდან",
+    "loadingSnapshots": "იტვირთება სურათები...",
+    "manual": "ხელით",
+    "auto": "ავტომატური",
+    "capturedAt": "შექმნილია: {{time}}"
+  },
+  "auth": {
+    "login": "შესვლა",
+    "register": "რეგისტრაცია",
+    "email": "ელ-ფოსტა",
+    "password": "პაროლი",
+    "fullName": "სრული სახელი",
+    "username": "მომხმარებლის სახელი",
+    "forgotPassword": "დაგავიწყდათ პაროლი?",
+    "dontHaveAccount": "არ გაქვთ ანგარიში?",
+    "alreadyHaveAccount": "უკვე გაქვთ ანგარიში?",
+    "signIn": "შესვლა",
+    "signUp": "რეგისტრაცია"
+  },
+  "errors": {
+    "failedToLoadItems": "ნივთების ჩატვირთვა ვერ მოხერხდა",
+    "failedToAddItem": "ნივთის დამატება ვერ მოხერხდა",
+    "failedToUpdateItem": "ნივთის განახლება ვერ მოხერხდა",
+    "failedToDeleteItem": "ნივთის წაშლა ვერ მოხერხდა",
+    "failedToUpdateQuantity": "რაოდენობის განახლება ვერ მოხერხდა",
+    "failedToCreateSnapshot": "სურათის შექმნა ვერ მოხერხდა",
+    "failedToLoadSnapshots": "სურათების ჩატვირთვა ვერ მოხერხდა"
+  }
+}

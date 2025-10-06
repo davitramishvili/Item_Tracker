@@ -2,6 +2,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Item, CreateItemData, UpdateItemData } from '../types/item';
 import { itemService } from '../services/itemService';
 import { historyService } from '../services/historyService';
@@ -10,6 +11,7 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -73,13 +75,13 @@ const Dashboard = () => {
   };
 
   const handleDeleteItem = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    if (!confirm(t('item.deleteConfirm'))) return;
 
     try {
       await itemService.delete(id);
       setItems(items.filter(item => item.id !== id));
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to delete item');
+      setError(err.response?.data?.error || t('errors.failedToDeleteItem'));
     }
   };
 
@@ -141,20 +143,25 @@ const Dashboard = () => {
 
   const handleCreateSnapshot = async () => {
     try {
-      setSnapshotMessage('Creating snapshot...');
+      setSnapshotMessage(t('dashboard.snapshotCreating'));
       const result = await historyService.createManualSnapshot();
 
       if (result.updated) {
-        setSnapshotMessage(`✓ Snapshot updated! ${result.count} item(s) saved.`);
+        setSnapshotMessage(t('dashboard.snapshotUpdated', { count: result.count }));
       } else {
-        setSnapshotMessage(`✓ Snapshot created! ${result.count} item(s) saved.`);
+        setSnapshotMessage(t('dashboard.snapshotCreated', { count: result.count }));
       }
 
       setTimeout(() => setSnapshotMessage(''), 5000);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create snapshot');
+      setError(err.response?.data?.error || t('errors.failedToCreateSnapshot'));
       setSnapshotMessage('');
     }
+  };
+
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('language', lang);
   };
 
   return (
@@ -163,15 +170,25 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-800 dark:text-white">Item Tracker</h1>
+              <h1 className="text-xl font-bold text-gray-800 dark:text-white">{t('nav.itemTracker')}</h1>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Language Selector */}
+              <select
+                value={i18n.language}
+                onChange={(e) => changeLanguage(e.target.value)}
+                className="px-3 py-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="en">English</option>
+                <option value="ka">ქართული</option>
+              </select>
+
               <button
                 onClick={toggleDarkMode}
                 className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${
                   isDarkMode ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
-                title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                title={isDarkMode ? t('nav.lightMode') : t('nav.darkMode')}
               >
                 <div
                   className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
@@ -179,12 +196,12 @@ const Dashboard = () => {
                   }`}
                 />
               </button>
-              <span className="text-gray-700 dark:text-gray-300">Welcome, {user?.full_name}!</span>
+              <span className="text-gray-700 dark:text-gray-300">{t('nav.welcome', { name: user?.full_name })}</span>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
               >
-                Logout
+                {t('nav.logout')}
               </button>
             </div>
           </div>
@@ -195,27 +212,27 @@ const Dashboard = () => {
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">My Items</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('dashboard.myItems')}</h2>
             <div className="flex gap-3">
               <button
                 onClick={() => navigate('/history')}
                 className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-                title="View snapshot history"
+                title={t('dashboard.history')}
               >
-                📊 History
+                📊 {t('dashboard.history')}
               </button>
               <button
                 onClick={handleCreateSnapshot}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                title="Create a snapshot of all current items"
+                title={t('dashboard.snapshot')}
               >
-                📸 Snapshot
+                📸 {t('dashboard.snapshot')}
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                + Add Item
+                + {t('dashboard.addItem')}
               </button>
             </div>
           </div>
@@ -238,7 +255,7 @@ const Dashboard = () => {
 
             return (
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-lg shadow-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold mb-3">Grand Total</h3>
+                <h3 className="text-lg font-semibold mb-3">{t('dashboard.grandTotal')}</h3>
                 <div className="flex flex-wrap gap-4">
                   {Object.entries(totalsByCurrency).map(([currency, total]) => (
                     <div key={currency} className="bg-white/20 dark:bg-white/10 rounded-lg px-6 py-3">
@@ -261,14 +278,14 @@ const Dashboard = () => {
           {/* Loading */}
           {loading && (
             <div className="text-center py-12">
-              <div className="text-gray-600 dark:text-gray-400">Loading items...</div>
+              <div className="text-gray-600 dark:text-gray-400">{t('dashboard.loadingItems')}</div>
             </div>
           )}
 
           {/* Items Grid */}
           {!loading && items.length === 0 && (
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-              <p className="text-gray-600 dark:text-gray-400 mb-4">No items yet. Add your first item!</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">{t('dashboard.noItems')}</p>
             </div>
           )}
 
@@ -291,14 +308,14 @@ const Dashboard = () => {
                         <button
                           onClick={() => handleEditItem(item)}
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xl"
-                          title="Edit item"
+                          title={t('item.edit')}
                         >
                           ✎
                         </button>
                         <button
                           onClick={() => handleDeleteItem(item.id)}
                           className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-xl"
-                          title="Delete item"
+                          title={t('item.delete')}
                         >
                           ×
                         </button>
@@ -312,13 +329,13 @@ const Dashboard = () => {
                     <div className="space-y-3">
                       {/* Quantity with Quick Adjust */}
                       <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium">Quantity:</span>
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">{t('item.quantity')}:</span>
                         <div className="flex items-center space-x-3">
                           <button
                             onClick={() => handleQuickQuantityChange(item, -1)}
                             disabled={item.quantity === 0}
                             className="w-8 h-8 flex items-center justify-center bg-red-500 text-white rounded-md hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
-                            title="Decrease quantity"
+                            title={t('item.decrease')}
                           >
                             −
                           </button>
@@ -326,7 +343,7 @@ const Dashboard = () => {
                           <button
                             onClick={() => handleQuickQuantityChange(item, 1)}
                             className="w-8 h-8 flex items-center justify-center bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                            title="Increase quantity"
+                            title={t('item.increase')}
                           >
                             +
                           </button>
@@ -336,7 +353,7 @@ const Dashboard = () => {
                       {/* Price Per Unit */}
                       {item.price_per_unit !== undefined && item.price_per_unit !== null && item.price_per_unit > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500 dark:text-gray-400">Price per unit:</span>
+                          <span className="text-gray-500 dark:text-gray-400">{t('item.pricePerUnit')}:</span>
                           <span className="font-medium dark:text-gray-200">{Number(item.price_per_unit).toFixed(2)} {item.currency}</span>
                         </div>
                       )}
@@ -344,7 +361,7 @@ const Dashboard = () => {
                       {/* Total Price */}
                       {item.price_per_unit !== undefined && item.price_per_unit !== null && item.price_per_unit > 0 && (
                         <div className="flex justify-between pt-3 border-t border-gray-200 dark:border-gray-600">
-                          <span className="text-gray-700 dark:text-gray-300 font-semibold">Total:</span>
+                          <span className="text-gray-700 dark:text-gray-300 font-semibold">{t('item.total')}:</span>
                           <span className="font-bold text-lg text-green-600 dark:text-green-400">
                             {Number(itemTotal).toFixed(2)} {item.currency}
                           </span>

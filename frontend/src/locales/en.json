@@ -1,0 +1,81 @@
+{
+  "nav": {
+    "itemTracker": "Item Tracker",
+    "dashboard": "Dashboard",
+    "welcome": "Welcome, {{name}}!",
+    "logout": "Logout",
+    "darkMode": "Switch to dark mode",
+    "lightMode": "Switch to light mode"
+  },
+  "dashboard": {
+    "myItems": "My Items",
+    "history": "History",
+    "snapshot": "Snapshot",
+    "addItem": "Add Item",
+    "noItems": "No items yet. Add your first item!",
+    "loadingItems": "Loading items...",
+    "grandTotal": "Grand Total",
+    "snapshotCreating": "Creating snapshot...",
+    "snapshotCreated": "✓ Snapshot created! {{count}} item(s) saved.",
+    "snapshotUpdated": "✓ Snapshot updated! {{count}} item(s) saved."
+  },
+  "item": {
+    "quantity": "Quantity",
+    "pricePerUnit": "Price per unit",
+    "total": "Total",
+    "edit": "Edit item",
+    "delete": "Delete item",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "deleteConfirm": "Are you sure you want to delete this item?"
+  },
+  "form": {
+    "name": "Name",
+    "description": "Description",
+    "quantity": "Quantity",
+    "pricePerUnit": "Price Per Unit",
+    "currency": "Currency",
+    "category": "Category",
+    "cancel": "Cancel",
+    "save": "Save",
+    "adding": "Adding...",
+    "updating": "Updating...",
+    "addNewItem": "Add New Item",
+    "editItem": "Edit Item",
+    "updateItem": "Update Item",
+    "required": "*"
+  },
+  "history": {
+    "snapshotHistory": "Snapshot History",
+    "selectDate": "Select Date",
+    "snapshotTotal": "Snapshot Total ({{date}})",
+    "noSnapshots": "No snapshots found for {{date}}",
+    "tryDifferentDate": "Try selecting a different date or create a snapshot from the Dashboard",
+    "loadingSnapshots": "Loading snapshots...",
+    "manual": "manual",
+    "auto": "auto",
+    "capturedAt": "Captured: {{time}}"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "username": "Username",
+    "forgotPassword": "Forgot password?",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "signUp": "Sign up"
+  },
+  "errors": {
+    "failedToLoadItems": "Failed to load items",
+    "failedToAddItem": "Failed to add item",
+    "failedToUpdateItem": "Failed to update item",
+    "failedToDeleteItem": "Failed to delete item",
+    "failedToUpdateQuantity": "Failed to update quantity",
+    "failedToCreateSnapshot": "Failed to create snapshot",
+    "failedToLoadSnapshots": "Failed to load snapshots"
+  }
+}
