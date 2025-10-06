@@ -2,6 +2,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { historyService } from '../services/historyService';
 import type { ItemHistory, ItemSnapshot } from '../types/history';
 
@@ -9,6 +10,7 @@ const History = () => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [snapshots, setSnapshots] = useState<ItemSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,7 +35,7 @@ const History = () => {
       setSnapshots(data);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load snapshots');
+      setError(err.response?.data?.error || t('errors.failedToLoadSnapshots'));
     } finally {
       setLoading(false);
     }
@@ -47,10 +49,15 @@ const History = () => {
       setSelectedDate(date);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load snapshots');
+      setError(err.response?.data?.error || t('errors.failedToLoadSnapshots'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('language', lang);
   };
 
   // Group snapshots by currency for total calculation
@@ -67,21 +74,31 @@ const History = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold text-gray-800 dark:text-white">Item Tracker</h1>
+              <h1 className="text-xl font-bold text-gray-800 dark:text-white">{t('nav.itemTracker')}</h1>
               <button
                 onClick={() => navigate('/dashboard')}
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               >
-                ← Dashboard
+                ← {t('nav.dashboard')}
               </button>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Language Selector */}
+              <select
+                value={i18n.language}
+                onChange={(e) => changeLanguage(e.target.value)}
+                className="px-3 py-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="en">English</option>
+                <option value="ka">ქართული</option>
+              </select>
+
               <button
                 onClick={toggleDarkMode}
                 className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${
                   isDarkMode ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
-                title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                title={isDarkMode ? t('nav.lightMode') : t('nav.darkMode')}
               >
                 <div
                   className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
@@ -89,12 +106,12 @@ const History = () => {
                   }`}
                 />
               </button>
-              <span className="text-gray-700 dark:text-gray-300">Welcome, {user?.full_name}!</span>
+              <span className="text-gray-700 dark:text-gray-300">{t('nav.welcome', { name: user?.full_name })}</span>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
               >
-                Logout
+                {t('nav.logout')}
               </button>
             </div>
           </div>
@@ -105,11 +122,11 @@ const History = () => {
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Snapshot History</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{t('history.snapshotHistory')}</h2>
 
             {/* Date Selector */}
             <div className="flex items-center gap-4">
-              <label className="text-gray-700 dark:text-gray-300 font-medium">Select Date:</label>
+              <label className="text-gray-700 dark:text-gray-300 font-medium">{t('history.selectDate')}:</label>
               <input
                 type="date"
                 value={selectedDate}
@@ -129,14 +146,14 @@ const History = () => {
           {/* Loading */}
           {loading && (
             <div className="text-center py-12">
-              <div className="text-gray-600 dark:text-gray-400">Loading snapshots...</div>
+              <div className="text-gray-600 dark:text-gray-400">{t('history.loadingSnapshots')}</div>
             </div>
           )}
 
           {/* Total Section */}
           {!loading && snapshots.length > 0 && (
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-700 dark:to-purple-800 text-white rounded-lg shadow-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold mb-3">Snapshot Total ({selectedDate})</h3>
+              <h3 className="text-lg font-semibold mb-3">{t('history.snapshotTotal', { date: selectedDate })}</h3>
               <div className="flex flex-wrap gap-4">
                 {Object.entries(totalsByCurrency).map(([currency, total]) => (
                   <div key={currency} className="bg-white/20 dark:bg-white/10 rounded-lg px-6 py-3">
@@ -151,8 +168,8 @@ const History = () => {
           {/* No Snapshots */}
           {!loading && snapshots.length === 0 && (
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-              <p className="text-gray-600 dark:text-gray-400 mb-4">No snapshots found for {selectedDate}</p>
-              <p className="text-gray-500 dark:text-gray-500 text-sm">Try selecting a different date or create a snapshot from the Dashboard</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">{t('history.noSnapshots', { date: selectedDate })}</p>
+              <p className="text-gray-500 dark:text-gray-500 text-sm">{t('history.tryDifferentDate')}</p>
             </div>
           )}
 
@@ -177,21 +194,21 @@ const History = () => {
                           ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                           : 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                       }`}>
-                        {snapshot.snapshot_type}
+                        {t(`history.${snapshot.snapshot_type}`)}
                       </span>
                     </div>
 
                     <div className="space-y-3">
                       {/* Quantity */}
                       <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                        <span className="text-gray-600 dark:text-gray-300 font-medium">Quantity:</span>
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">{t('item.quantity')}:</span>
                         <span className="font-bold text-lg dark:text-white">{snapshot.quantity}</span>
                       </div>
 
                       {/* Price Per Unit */}
                       {snapshot.price_per_unit !== undefined && snapshot.price_per_unit !== null && snapshot.price_per_unit > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500 dark:text-gray-400">Price per unit:</span>
+                          <span className="text-gray-500 dark:text-gray-400">{t('item.pricePerUnit')}:</span>
                           <span className="font-medium dark:text-gray-200">{Number(snapshot.price_per_unit).toFixed(2)} {snapshot.currency}</span>
                         </div>
                       )}
@@ -199,7 +216,7 @@ const History = () => {
                       {/* Total Price */}
                       {snapshot.price_per_unit !== undefined && snapshot.price_per_unit !== null && snapshot.price_per_unit > 0 && (
                         <div className="flex justify-between pt-3 border-t border-gray-200 dark:border-gray-600">
-                          <span className="text-gray-700 dark:text-gray-300 font-semibold">Total:</span>
+                          <span className="text-gray-700 dark:text-gray-300 font-semibold">{t('item.total')}:</span>
                           <span className="font-bold text-lg text-purple-600 dark:text-purple-400">
                             {Number(itemTotal).toFixed(2)} {snapshot.currency}
                           </span>
@@ -208,7 +225,7 @@ const History = () => {
 
                       {/* Snapshot Time */}
                       <div className="text-xs text-gray-500 dark:text-gray-500 text-center pt-2">
-                        Captured: {new Date(snapshot.created_at).toLocaleString()}
+                        {t('history.capturedAt', { time: new Date(snapshot.created_at).toLocaleString() })}
                       </div>
                     </div>
                   </div>
