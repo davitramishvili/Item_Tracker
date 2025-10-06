@@ -1,5 +1,5 @@
 import api from './api';
-import { AuthResponse, LoginCredentials, RegisterData } from '../types/auth';
+import type { AuthResponse, LoginCredentials, RegisterData } from '../types/auth';
 
 export const authService = {
   // Register new user

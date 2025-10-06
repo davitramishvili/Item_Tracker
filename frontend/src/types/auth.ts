@@ -1,3 +1,4 @@
+// Updated: 2025-10-06
 export interface User {
   id: number;
   email: string;
