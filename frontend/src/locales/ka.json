@@ -46,6 +46,7 @@
     "required": "*"
   },
   "status": {
+    "choose": "აირჩიეთ სტატუსი...",
     "inStock": "მარაგშია",
     "onTheWay": "გზაშია",
     "needToOrder": "საჭიროა შეკვეთა"

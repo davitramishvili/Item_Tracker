@@ -30,7 +30,7 @@ const Dashboard = () => {
     quantity: 1,
     price_per_unit: 0,
     currency: 'USD',
-    category: 'in_stock',
+    category: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [snapshotMessage, setSnapshotMessage] = useState('');
@@ -486,13 +486,13 @@ const Dashboard = () => {
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4 dark:text-white">Add New Item</h3>
+            <h3 className="text-xl font-bold mb-4 dark:text-white">{t('form.addNewItem')}</h3>
 
             <form onSubmit={handleAddItem}>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Name *
+                    {t('form.name')} {t('form.required')}
                   </label>
                   <input
                     type="text"
@@ -505,7 +505,7 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Description
+                    {t('form.description')}
                   </label>
                   <textarea
                     value={formData.description}
@@ -517,7 +517,7 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Quantity
+                    {t('form.quantity')}
                   </label>
                   <input
                     type="number"
@@ -530,7 +530,7 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Price Per Unit
+                    {t('form.pricePerUnit')}
                   </label>
                   <input
                     type="number"
@@ -544,7 +544,7 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Currency
+                    {t('form.currency')}
                   </label>
                   <select
                     value={formData.currency}
@@ -558,13 +558,15 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('form.status')}
+                    {t('form.status')} {t('form.required')}
                   </label>
                   <select
+                    required
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
+                    <option value="">{t('status.choose')}</option>
                     {STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {t(option.labelKey)}
@@ -580,14 +582,14 @@ const Dashboard = () => {
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  Cancel
+                  {t('form.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {submitting ? 'Adding...' : 'Add Item'}
+                  {submitting ? t('form.adding') : t('dashboard.addItem')}
                 </button>
               </div>
             </form>
@@ -599,7 +601,7 @@ const Dashboard = () => {
       {showEditModal && editingItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4 dark:text-white">Edit Item</h3>
+            <h3 className="text-xl font-bold mb-4 dark:text-white">{t('form.editItem')}</h3>
 
             <form onSubmit={handleUpdateItem}>
               <div className="space-y-4">
@@ -618,7 +620,7 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Description
+                    {t('form.description')}
                   </label>
                   <textarea
                     value={formData.description}
@@ -630,7 +632,7 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Quantity
+                    {t('form.quantity')}
                   </label>
                   <input
                     type="number"
@@ -643,7 +645,7 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Price Per Unit
+                    {t('form.pricePerUnit')}
                   </label>
                   <input
                     type="number"
@@ -657,7 +659,7 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Currency
+                    {t('form.currency')}
                   </label>
                   <select
                     value={formData.currency}
@@ -671,13 +673,15 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('form.status')}
+                    {t('form.status')} {t('form.required')}
                   </label>
                   <select
+                    required
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
+                    <option value="">{t('status.choose')}</option>
                     {STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {t(option.labelKey)}
@@ -696,14 +700,14 @@ const Dashboard = () => {
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  Cancel
+                  {t('form.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {submitting ? 'Updating...' : 'Update Item'}
+                  {submitting ? t('form.updating') : t('form.updateItem')}
                 </button>
               </div>
             </form>

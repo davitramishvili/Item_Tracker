@@ -46,6 +46,7 @@
     "required": "*"
   },
   "status": {
+    "choose": "Choose status...",
     "inStock": "In Stock",
     "onTheWay": "On Its Way",
     "needToOrder": "Need to Order"
