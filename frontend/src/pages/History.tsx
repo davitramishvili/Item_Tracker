@@ -226,7 +226,7 @@ const History = () => {
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{snapshot.name}</h3>
                         {snapshot.category && (
                           <span className="inline-block mt-1 px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full">
-                            {snapshot.category}
+                            {t(`status.${snapshot.category === 'in_stock' ? 'inStock' : snapshot.category === 'on_the_way' ? 'onTheWay' : 'needToOrder'}`)}
                           </span>
                         )}
                       </div>
