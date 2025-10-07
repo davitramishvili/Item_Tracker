@@ -74,7 +74,9 @@
     "loadingSnapshots": "Loading snapshots...",
     "manual": "manual",
     "auto": "auto",
-    "capturedAt": "Captured: {{time}}"
+    "capturedAt": "Captured: {{time}}",
+    "type": "Type",
+    "captured": "Captured"
   },
   "auth": {
     "login": "Login",
