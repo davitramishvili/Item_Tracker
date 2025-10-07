@@ -35,7 +35,7 @@
     "quantity": "Quantity",
     "pricePerUnit": "Price Per Unit",
     "currency": "Currency",
-    "category": "Category",
+    "status": "Status",
     "cancel": "Cancel",
     "save": "Save",
     "adding": "Adding...",
@@ -44,6 +44,19 @@
     "editItem": "Edit Item",
     "updateItem": "Update Item",
     "required": "*"
+  },
+  "status": {
+    "inStock": "In Stock",
+    "onTheWay": "On Its Way",
+    "needToOrder": "Need to Order"
+  },
+  "filters": {
+    "filterItems": "Filter Items",
+    "searchByName": "Search by name...",
+    "allStatuses": "All Statuses",
+    "minPrice": "Min Price",
+    "maxPrice": "Max Price",
+    "clearFilters": "Clear Filters"
   },
   "history": {
     "snapshotHistory": "Snapshot History",

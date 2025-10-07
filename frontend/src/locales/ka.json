@@ -35,7 +35,7 @@
     "quantity": "რაოდენობა",
     "pricePerUnit": "ფასი ერთეულზე",
     "currency": "ვალუტა",
-    "category": "კატეგორია",
+    "status": "სტატუსი",
     "cancel": "გაუქმება",
     "save": "შენახვა",
     "adding": "ემატება...",
@@ -44,6 +44,19 @@
     "editItem": "ნივთის რედაქტირება",
     "updateItem": "განახლება",
     "required": "*"
+  },
+  "status": {
+    "inStock": "მარაგშია",
+    "onTheWay": "გზაშია",
+    "needToOrder": "საჭიროა შეკვეთა"
+  },
+  "filters": {
+    "filterItems": "ნივთების ფილტრი",
+    "searchByName": "ძებნა სახელით...",
+    "allStatuses": "ყველა სტატუსი",
+    "minPrice": "მინ. ფასი",
+    "maxPrice": "მაქს. ფასი",
+    "clearFilters": "ფილტრების გასუფთავება"
   },
   "history": {
     "snapshotHistory": "სურათების ისტორია",
