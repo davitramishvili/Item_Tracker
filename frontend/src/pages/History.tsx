@@ -6,6 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { historyService } from '../services/historyService';
 import type { ItemSnapshot } from '../types/history';
 
+const STATUS_OPTIONS = [
+  { value: 'in_stock', labelKey: 'status.inStock' },
+  { value: 'on_the_way', labelKey: 'status.onTheWay' },
+  { value: 'need_to_order', labelKey: 'status.needToOrder' },
+];
+
 const History = () => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -60,13 +66,34 @@ const History = () => {
     localStorage.setItem('language', lang);
   };
 
-  // Group snapshots by currency for total calculation
-  const totalsByCurrency = snapshots.reduce((acc, snapshot) => {
+  // Group snapshots by category and currency for total calculation
+  const categoryTotals = snapshots.reduce((acc, snapshot) => {
+    const category = snapshot.category || 'in_stock';
     const total = snapshot.quantity * (snapshot.price_per_unit || 0);
     const currency = snapshot.currency || 'USD';
-    acc[currency] = (acc[currency] || 0) + total;
+
+    if (!acc[category]) {
+      acc[category] = {};
+    }
+    acc[category][currency] = (acc[category][currency] || 0) + total;
     return acc;
-  }, {} as Record<string, number>);
+  }, {} as Record<string, Record<string, number>>);
+
+  const getCategoryColor = (category: string) => {
+    if (category === 'in_stock') return 'from-green-600 to-green-700 dark:from-green-700 dark:to-green-800';
+    if (category === 'on_the_way') return 'from-yellow-600 to-yellow-700 dark:from-yellow-700 dark:to-yellow-800';
+    return 'from-red-600 to-red-700 dark:from-red-700 dark:to-red-800';
+  };
+
+  const getCategoryLabel = (category: string) => {
+    if (category === 'in_stock') return t('status.inStock');
+    if (category === 'on_the_way') return t('status.onTheWay');
+    return t('status.needToOrder');
+  };
+
+  const getCategoryPrefix = (category: string) => {
+    return category === 'need_to_order' ? '-' : '';
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
@@ -150,18 +177,32 @@ const History = () => {
             </div>
           )}
 
-          {/* Total Section */}
+          {/* Category Totals Section */}
           {!loading && snapshots.length > 0 && (
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-700 dark:to-purple-800 text-white rounded-lg shadow-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold mb-3">{t('history.snapshotTotal', { date: selectedDate })}</h3>
-              <div className="flex flex-wrap gap-4">
-                {Object.entries(totalsByCurrency).map(([currency, total]) => (
-                  <div key={currency} className="bg-white/20 dark:bg-white/10 rounded-lg px-6 py-3">
-                    <div className="text-sm opacity-90">{currency}</div>
-                    <div className="text-2xl font-bold">{total.toFixed(2)}</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {STATUS_OPTIONS.map((statusOption) => {
+                const totals = categoryTotals[statusOption.value];
+                if (!totals) return null;
+
+                return (
+                  <div
+                    key={statusOption.value}
+                    className={`bg-gradient-to-r ${getCategoryColor(statusOption.value)} text-white rounded-lg shadow-lg p-6`}
+                  >
+                    <h3 className="text-lg font-semibold mb-3">{getCategoryLabel(statusOption.value)}</h3>
+                    <div className="space-y-2">
+                      {Object.entries(totals).map(([currency, total]) => (
+                        <div key={currency} className="bg-white/20 dark:bg-white/10 rounded-lg px-4 py-2">
+                          <div className="text-sm opacity-90">{currency}</div>
+                          <div className="text-2xl font-bold">
+                            {getCategoryPrefix(statusOption.value)}{total.toFixed(2)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
 
