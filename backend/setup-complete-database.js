@@ -97,7 +97,7 @@ async function setupCompleteDatabase() {
         snapshot_date DATE NOT NULL,
         snapshot_type ENUM('auto', 'manual') DEFAULT 'auto',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE NO ACTION,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE KEY unique_item_snapshot (item_id, snapshot_date),
         INDEX idx_snapshot_date (snapshot_date),
