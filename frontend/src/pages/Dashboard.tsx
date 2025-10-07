@@ -7,6 +7,12 @@ import type { Item, CreateItemData, UpdateItemData } from '../types/item';
 import { itemService } from '../services/itemService';
 import { historyService } from '../services/historyService';
 
+const STATUS_OPTIONS = [
+  { value: 'in_stock', labelKey: 'status.inStock' },
+  { value: 'on_the_way', labelKey: 'status.onTheWay' },
+  { value: 'need_to_order', labelKey: 'status.needToOrder' },
+];
+
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -24,10 +30,18 @@ const Dashboard = () => {
     quantity: 1,
     price_per_unit: 0,
     currency: 'USD',
-    category: '',
+    category: 'in_stock',
   });
   const [submitting, setSubmitting] = useState(false);
   const [snapshotMessage, setSnapshotMessage] = useState('');
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    searchName: '',
+    status: '',
+    minPrice: '',
+    maxPrice: '',
+  });
 
   const handleLogout = () => {
     logout();
@@ -164,6 +178,39 @@ const Dashboard = () => {
     localStorage.setItem('language', lang);
   };
 
+  // Filter items based on search, status, and price
+  const filteredItems = items.filter((item) => {
+    // Name filter
+    if (filters.searchName && !item.name.toLowerCase().includes(filters.searchName.toLowerCase())) {
+      return false;
+    }
+
+    // Status filter
+    if (filters.status && item.category !== filters.status) {
+      return false;
+    }
+
+    // Price filter
+    const itemPrice = item.price_per_unit || 0;
+    if (filters.minPrice && itemPrice < parseFloat(filters.minPrice)) {
+      return false;
+    }
+    if (filters.maxPrice && itemPrice > parseFloat(filters.maxPrice)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const clearFilters = () => {
+    setFilters({
+      searchName: '',
+      status: '',
+      minPrice: '',
+      maxPrice: '',
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
       <nav className="bg-white dark:bg-gray-800 shadow-sm transition-colors">
@@ -245,8 +292,8 @@ const Dashboard = () => {
           )}
 
           {/* Grand Total Section */}
-          {!loading && items.length > 0 && (() => {
-            const totalsByCurrency = items.reduce((acc, item) => {
+          {!loading && filteredItems.length > 0 && (() => {
+            const totalsByCurrency = filteredItems.reduce((acc, item) => {
               const total = item.quantity * (item.price_per_unit || 0);
               const currency = item.currency || 'USD';
               acc[currency] = (acc[currency] || 0) + total;
@@ -282,6 +329,65 @@ const Dashboard = () => {
             </div>
           )}
 
+          {/* Filter UI */}
+          {!loading && items.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">{t('filters.filterItems')}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Name Search */}
+                <input
+                  type="text"
+                  placeholder={t('filters.searchByName')}
+                  value={filters.searchName}
+                  onChange={(e) => setFilters({ ...filters, searchName: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+                {/* Status Filter */}
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">{t('filters.allStatuses')}</option>
+                  {STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Min Price */}
+                <input
+                  type="number"
+                  placeholder={t('filters.minPrice')}
+                  value={filters.minPrice}
+                  onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+                {/* Max Price */}
+                <input
+                  type="number"
+                  placeholder={t('filters.maxPrice')}
+                  value={filters.maxPrice}
+                  onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Clear Filters Button */}
+              {(filters.searchName || filters.status || filters.minPrice || filters.maxPrice) && (
+                <button
+                  onClick={clearFilters}
+                  className="mt-4 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                >
+                  {t('filters.clearFilters')}
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Items Grid */}
           {!loading && items.length === 0 && (
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -289,9 +395,9 @@ const Dashboard = () => {
             </div>
           )}
 
-          {!loading && items.length > 0 && (
+          {!loading && filteredItems.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map((item) => {
+              {filteredItems.map((item) => {
                 const itemTotal = item.quantity * (item.price_per_unit || 0);
                 return (
                   <div key={item.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
@@ -300,7 +406,7 @@ const Dashboard = () => {
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{item.name}</h3>
                         {item.category && (
                           <span className="inline-block mt-1 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
-                            {item.category}
+                            {t(`status.${item.category === 'in_stock' ? 'inStock' : item.category === 'on_the_way' ? 'onTheWay' : 'needToOrder'}`)}
                           </span>
                         )}
                       </div>
@@ -452,14 +558,19 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Category
+                    {t('form.status')}
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  >
+                    {STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -560,14 +671,19 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Category
+                    {t('form.status')}
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  >
+                    {STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
