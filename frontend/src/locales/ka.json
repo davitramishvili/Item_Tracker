@@ -74,7 +74,9 @@
     "loadingSnapshots": "იტვირთება სურათები...",
     "manual": "ხელით",
     "auto": "ავტომატური",
-    "capturedAt": "შექმნილია: {{time}}"
+    "capturedAt": "შექმნილია: {{time}}",
+    "type": "ტიპი",
+    "captured": "შექმნილია"
   },
   "auth": {
     "login": "შესვლა",
