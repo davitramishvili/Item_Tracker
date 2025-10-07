@@ -112,7 +112,7 @@ class AuthService {
       }
 
       // Check if email is verified
-      if (!user.email_verified) {
+      if (!user.is_verified) {
         return {
           success: false,
           message: 'Please verify your email before logging in. Check your inbox.',
