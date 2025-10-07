@@ -66,6 +66,12 @@ const Dashboard = () => {
     }
   };
 
+  // Get unique item names for autocomplete
+  const getUniqueItemNames = () => {
+    const names = items.map(item => item.name);
+    return [...new Set(names)].sort();
+  };
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -533,10 +539,17 @@ const Dashboard = () => {
                   <input
                     type="text"
                     required
+                    list="item-names-list"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Type or select from existing names"
                   />
+                  <datalist id="item-names-list">
+                    {getUniqueItemNames().map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div>
@@ -648,10 +661,17 @@ const Dashboard = () => {
                   <input
                     type="text"
                     required
+                    list="item-names-list-edit"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Type or select from existing names"
                   />
+                  <datalist id="item-names-list-edit">
+                    {getUniqueItemNames().map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div>
