@@ -27,7 +27,11 @@
     "delete": "Delete item",
     "decrease": "Decrease quantity",
     "increase": "Increase quantity",
-    "deleteConfirm": "Are you sure you want to delete this item?"
+    "deleteConfirm": "Are you sure you want to delete this item?",
+    "moveToInStock": "Move to In Stock",
+    "moveToOnTheWay": "Move to On Its Way",
+    "moved": "Item moved successfully",
+    "merged": "Item merged with existing item"
   },
   "form": {
     "name": "Name",

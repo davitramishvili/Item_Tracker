@@ -161,6 +161,36 @@ const Dashboard = () => {
     }
   };
 
+  const handleMoveItem = async (item: Item, targetStatus: string) => {
+    try {
+      // Check if an item with the same name exists in the target status
+      const existingItem = items.find(
+        i => i.name === item.name && i.category === targetStatus && i.id !== item.id
+      );
+
+      if (existingItem) {
+        // Merge: Add quantity to existing item and delete current item
+        const newQuantity = existingItem.quantity + item.quantity;
+        await itemService.update(existingItem.id, { quantity: newQuantity });
+        await itemService.delete(item.id);
+
+        setItems(items.filter(i => i.id !== item.id).map(i =>
+          i.id === existingItem.id ? { ...i, quantity: newQuantity } : i
+        ));
+        setSnapshotMessage(t('item.merged'));
+      } else {
+        // Move: Update category to target status
+        const updatedItem = await itemService.update(item.id, { category: targetStatus });
+        setItems(items.map(i => i.id === item.id ? updatedItem : i));
+        setSnapshotMessage(t('item.moved'));
+      }
+
+      setTimeout(() => setSnapshotMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to move item');
+    }
+  };
+
   const handleCreateSnapshot = async () => {
     try {
       setSnapshotMessage(t('dashboard.snapshotCreating'));
@@ -514,6 +544,24 @@ const Dashboard = () => {
                             {Number(itemTotal).toFixed(2)} {item.currency}
                           </span>
                         </div>
+                      )}
+
+                      {/* Move/Transfer Button */}
+                      {item.category === 'need_to_order' && (
+                        <button
+                          onClick={() => handleMoveItem(item, 'on_the_way')}
+                          className="w-full mt-3 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-sm font-medium"
+                        >
+                          → {t('item.moveToOnTheWay')}
+                        </button>
+                      )}
+                      {item.category === 'on_the_way' && (
+                        <button
+                          onClick={() => handleMoveItem(item, 'in_stock')}
+                          className="w-full mt-3 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+                        >
+                          → {t('item.moveToInStock')}
+                        </button>
                       )}
                     </div>
                   </div>
