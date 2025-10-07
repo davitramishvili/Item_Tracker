@@ -13,6 +13,8 @@ const Profile = () => {
   const [itemNames, setItemNames] = useState<ItemName[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
     loadItemNames();
@@ -28,6 +30,33 @@ const Profile = () => {
       setError(err.response?.data?.error || t('errors.failedToLoadItems'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStartEdit = (item: ItemName) => {
+    setEditingId(item.id);
+    setEditingName(item.name);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const handleSaveEdit = async (id: number) => {
+    if (!editingName.trim()) {
+      setError(t('profile.nameRequired'));
+      return;
+    }
+
+    try {
+      const updatedItem = await itemNameService.update(id, editingName);
+      setItemNames(itemNames.map(item => item.id === id ? updatedItem : item));
+      setEditingId(null);
+      setEditingName('');
+      setError('');
+    } catch (err: any) {
+      setError(err.response?.data?.error || t('profile.failedToUpdateName'));
     }
   };
 
@@ -172,7 +201,17 @@ const Profile = () => {
                     {itemNames.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{item.name}</div>
+                          {editingId === item.id ? (
+                            <input
+                              type="text"
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              className="px-2 py-1 border border-blue-500 dark:border-blue-400 dark:bg-gray-700 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">{item.name}</div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -180,12 +219,37 @@ const Profile = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleDeleteItemName(item.id)}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            {t('profile.delete')}
-                          </button>
+                          {editingId === item.id ? (
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleSaveEdit(item.id)}
+                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 font-medium"
+                              >
+                                {t('profile.save')}
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                              >
+                                {t('profile.cancel')}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleStartEdit(item)}
+                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                              >
+                                {t('profile.edit')}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItemName(item.id)}
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                {t('profile.delete')}
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}

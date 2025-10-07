@@ -112,9 +112,14 @@
     "itemName": "Item Name",
     "dateAdded": "Date Added",
     "actions": "Actions",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
     "delete": "Delete",
     "deleteNameConfirm": "Are you sure you want to delete this item name from your saved list?",
     "failedToDeleteName": "Failed to delete item name",
+    "failedToUpdateName": "Failed to update item name",
+    "nameRequired": "Name is required",
     "loadingNames": "Loading item names...",
     "noSavedNames": "No saved item names yet. Add items to see them here!"
   }

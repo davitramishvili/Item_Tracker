@@ -39,7 +39,9 @@ const History = () => {
       const today = new Date().toISOString().split('T')[0];
       setSelectedDate(today);
       const data = await historyService.getSnapshotsByDate(today);
-      setSnapshots(data);
+      // Sort alphabetically by name (supports both Georgian and English)
+      const sortedData = data.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      setSnapshots(sortedData);
       setError('');
     } catch (err: any) {
       setError(err.response?.data?.error || t('errors.failedToLoadSnapshots'));
@@ -52,7 +54,9 @@ const History = () => {
     try {
       setLoading(true);
       const data = await historyService.getSnapshotsByDate(date);
-      setSnapshots(data);
+      // Sort alphabetically by name (supports both Georgian and English)
+      const sortedData = data.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      setSnapshots(sortedData);
       setSelectedDate(date);
       setError('');
     } catch (err: any) {

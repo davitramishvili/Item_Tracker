@@ -23,6 +23,18 @@ export const itemNameService = {
     return response.data.itemNames;
   },
 
+  // Update an item name
+  update: async (id: number, name: string): Promise<ItemName> => {
+    const token = getAuthToken();
+    const response = await axios.put(`${API_URL}/item-names/${id}`,
+      { name },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return response.data.itemName;
+  },
+
   // Delete an item name
   delete: async (id: number): Promise<void> => {
     const token = getAuthToken();

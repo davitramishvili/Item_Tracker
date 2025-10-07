@@ -61,7 +61,9 @@ const Dashboard = () => {
     try {
       setLoading(true);
       const data = await itemService.getAll();
-      setItems(data);
+      // Sort alphabetically by name (supports both Georgian and English)
+      const sortedData = data.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      setItems(sortedData);
       setError('');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load items');
