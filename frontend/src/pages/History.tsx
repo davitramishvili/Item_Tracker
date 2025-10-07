@@ -21,6 +21,7 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   const handleLogout = () => {
     logout();
@@ -149,7 +150,17 @@ const History = () => {
         <div className="px-4 py-6 sm:px-0">
           {/* Header */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{t('history.snapshotHistory')}</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('history.snapshotHistory')}</h2>
+              {/* View Toggle */}
+              <button
+                onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                title={viewMode === 'card' ? t('dashboard.tableView') : t('dashboard.cardView')}
+              >
+                {viewMode === 'card' ? '☰' : '▦'} {viewMode === 'card' ? t('dashboard.tableView') : t('dashboard.cardView')}
+              </button>
+            </div>
 
             {/* Date Selector */}
             <div className="flex items-center gap-4">
@@ -214,8 +225,8 @@ const History = () => {
             </div>
           )}
 
-          {/* Snapshots Grid */}
-          {!loading && snapshots.length > 0 && (
+          {/* Snapshots Card View */}
+          {!loading && snapshots.length > 0 && viewMode === 'card' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {snapshots.map((snapshot) => {
                 const itemTotal = snapshot.quantity * (snapshot.price_per_unit || 0);
@@ -272,6 +283,69 @@ const History = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Snapshots Table View */}
+          {!loading && snapshots.length > 0 && viewMode === 'table' && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('form.name')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('form.status')}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.quantity')}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.pricePerUnit')}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.total')}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Captured</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {snapshots.map((snapshot) => {
+                    const itemTotal = snapshot.quantity * (snapshot.price_per_unit || 0);
+                    return (
+                      <tr key={snapshot.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{snapshot.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {snapshot.category && (
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                              {t(`status.${snapshot.category === 'in_stock' ? 'inStock' : snapshot.category === 'on_the_way' ? 'onTheWay' : 'needToOrder'}`)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className="font-bold text-sm dark:text-white">{snapshot.quantity}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">
+                          {snapshot.price_per_unit !== undefined && snapshot.price_per_unit !== null && snapshot.price_per_unit > 0
+                            ? `${Number(snapshot.price_per_unit).toFixed(2)} ${snapshot.currency}`
+                            : '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-purple-600 dark:text-purple-400 text-right">
+                          {snapshot.price_per_unit !== undefined && snapshot.price_per_unit !== null && snapshot.price_per_unit > 0
+                            ? `${Number(itemTotal).toFixed(2)} ${snapshot.currency}`
+                            : '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            snapshot.snapshot_type === 'manual'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                              : 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                          }`}>
+                            {t(`history.${snapshot.snapshot_type}`)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 text-center">
+                          {new Date(snapshot.created_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
