@@ -19,6 +19,7 @@ async function createUsersTable() {
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) NOT NULL UNIQUE,
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
         first_name VARCHAR(100),
@@ -29,6 +30,7 @@ async function createUsersTable() {
         reset_password_expires DATETIME,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_username (username),
         INDEX idx_email (email),
         INDEX idx_verification_token (verification_token),
         INDEX idx_reset_password_token (reset_password_token)
