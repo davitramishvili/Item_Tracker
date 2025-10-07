@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ItemModel } from '../models/Item';
 import { HistoryModel } from '../models/History';
+import { ItemNameModel } from '../models/ItemName';
 
 // Get all items for the authenticated user
 export const getItems = async (req: Request, res: Response): Promise<void> => {
@@ -54,6 +55,9 @@ export const createItem = async (req: Request, res: Response): Promise<void> => 
       price_per_unit: price_per_unit || 0,
       currency: currency || 'USD',
     });
+
+    // Add item name to item_names table for autocomplete
+    await ItemNameModel.addName(userId, name.trim());
 
     res.status(201).json({ message: 'Item created successfully', item });
   } catch (error: any) {

@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import History from './pages/History';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -31,6 +32,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <History />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />

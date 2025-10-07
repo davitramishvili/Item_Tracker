@@ -2,6 +2,7 @@
   "nav": {
     "itemTracker": "Item Tracker",
     "dashboard": "Dashboard",
+    "profile": "Profile",
     "welcome": "Welcome, {{name}}!",
     "logout": "Logout",
     "darkMode": "Switch to dark mode",
@@ -99,5 +100,22 @@
     "failedToUpdateQuantity": "Failed to update quantity",
     "failedToCreateSnapshot": "Failed to create snapshot",
     "failedToLoadSnapshots": "Failed to load snapshots"
+  },
+  "profile": {
+    "title": "Profile",
+    "userInfo": "User Information",
+    "fullName": "Full Name",
+    "username": "Username",
+    "email": "Email",
+    "savedItemNames": "Saved Item Names",
+    "savedItemNamesDescription": "These are all the item names you've ever added. They appear in the autocomplete dropdown when adding new items.",
+    "itemName": "Item Name",
+    "dateAdded": "Date Added",
+    "actions": "Actions",
+    "delete": "Delete",
+    "deleteNameConfirm": "Are you sure you want to delete this item name from your saved list?",
+    "failedToDeleteName": "Failed to delete item name",
+    "loadingNames": "Loading item names...",
+    "noSavedNames": "No saved item names yet. Add items to see them here!"
   }
 }

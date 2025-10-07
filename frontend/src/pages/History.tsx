@@ -107,7 +107,13 @@ const History = () => {
                 onClick={() => navigate('/dashboard')}
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               >
-                ← {t('nav.dashboard')}
+                {t('nav.dashboard')}
+              </button>
+              <button
+                onClick={() => navigate('/profile')}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                {t('nav.profile')}
               </button>
             </div>
             <div className="flex items-center space-x-4">

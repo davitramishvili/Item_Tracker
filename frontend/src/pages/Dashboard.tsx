@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { Item, CreateItemData, UpdateItemData } from '../types/item';
 import { itemService } from '../services/itemService';
 import { historyService } from '../services/historyService';
+import { itemNameService } from '../services/itemNameService';
 
 const STATUS_OPTIONS = [
   { value: 'in_stock', labelKey: 'status.inStock' },
@@ -19,6 +20,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [items, setItems] = useState<Item[]>([]);
+  const [itemNames, setItemNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -49,9 +51,10 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  // Load items on mount
+  // Load items and item names on mount
   useEffect(() => {
     loadItems();
+    loadItemNames();
   }, []);
 
   const loadItems = async () => {
@@ -67,10 +70,13 @@ const Dashboard = () => {
     }
   };
 
-  // Get unique item names for autocomplete
-  const getUniqueItemNames = () => {
-    const names = items.map(item => item.name);
-    return [...new Set(names)].sort();
+  const loadItemNames = async () => {
+    try {
+      const data = await itemNameService.getAll();
+      setItemNames(data.map(item => item.name).sort());
+    } catch (err: any) {
+      console.error('Failed to load item names:', err);
+    }
   };
 
   const handleAddItem = async (e: React.FormEvent) => {
@@ -253,8 +259,20 @@ const Dashboard = () => {
       <nav className="bg-white dark:bg-gray-800 shadow-sm transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
               <h1 className="text-xl font-bold text-gray-800 dark:text-white">{t('nav.itemTracker')}</h1>
+              <button
+                onClick={() => navigate('/history')}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                {t('dashboard.history')}
+              </button>
+              <button
+                onClick={() => navigate('/profile')}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                {t('nav.profile')}
+              </button>
             </div>
             <div className="flex items-center space-x-4">
               {/* Language Selector */}
@@ -709,7 +727,7 @@ const Dashboard = () => {
                     placeholder="Type or select from existing names"
                   />
                   <datalist id="item-names-list">
-                    {getUniqueItemNames().map((name) => (
+                    {itemNames.map((name) => (
                       <option key={name} value={name} />
                     ))}
                   </datalist>
@@ -831,7 +849,7 @@ const Dashboard = () => {
                     placeholder="Type or select from existing names"
                   />
                   <datalist id="item-names-list-edit">
-                    {getUniqueItemNames().map((name) => (
+                    {itemNames.map((name) => (
                       <option key={name} value={name} />
                     ))}
                   </datalist>
