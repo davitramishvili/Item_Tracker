@@ -135,7 +135,7 @@ class AuthService {
           email: user.email,
           username: user.username,
           full_name: user.full_name,
-          email_verified: user.email_verified,
+          email_verified: user.is_verified,
         },
       };
     } catch (error) {
@@ -155,7 +155,7 @@ class AuthService {
 
       // Update user to mark email as verified
       await UserModel.update(user.id, {
-        email_verified: true,
+        is_verified: true,
         verification_token: null,
       });
 
@@ -265,7 +265,7 @@ class AuthService {
           // Link Google account to existing user
           await UserModel.update(user.id, {
             google_id: googleId,
-            email_verified: true, // Google emails are verified
+            is_verified: true, // Google emails are verified
           });
         } else {
           // Create new user with Google
@@ -279,7 +279,7 @@ class AuthService {
 
           const userId = await UserModel.create(userData);
           // Mark email as verified for Google users
-          await UserModel.update(userId, { email_verified: true });
+          await UserModel.update(userId, { is_verified: true });
 
           user = await UserModel.findById(userId);
           if (!user) {
@@ -304,7 +304,7 @@ class AuthService {
           email: user.email,
           username: user.username,
           full_name: user.full_name,
-          email_verified: user.email_verified,
+          email_verified: user.is_verified,
         },
       };
     } catch (error) {
