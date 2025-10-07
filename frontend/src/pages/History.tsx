@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { historyService } from '../services/historyService';
-import type { ItemHistory, ItemSnapshot } from '../types/history';
+import type { ItemSnapshot } from '../types/history';
 
 const History = () => {
   const { user, logout } = useAuth();
