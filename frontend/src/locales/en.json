@@ -17,7 +17,9 @@
     "grandTotal": "Grand Total",
     "snapshotCreating": "Creating snapshot...",
     "snapshotCreated": "✓ Snapshot created! {{count}} item(s) saved.",
-    "snapshotUpdated": "✓ Snapshot updated! {{count}} item(s) saved."
+    "snapshotUpdated": "✓ Snapshot updated! {{count}} item(s) saved.",
+    "cardView": "Card View",
+    "tableView": "Table View"
   },
   "item": {
     "quantity": "Quantity",

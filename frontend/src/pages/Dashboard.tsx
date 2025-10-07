@@ -34,6 +34,7 @@ const Dashboard = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [snapshotMessage, setSnapshotMessage] = useState('');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -297,6 +298,14 @@ const Dashboard = () => {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('dashboard.myItems')}</h2>
             <div className="flex gap-3">
+              {/* View Toggle */}
+              <button
+                onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                title={viewMode === 'card' ? t('dashboard.tableView') : t('dashboard.cardView')}
+              >
+                {viewMode === 'card' ? '☰' : '▦'} {viewMode === 'card' ? t('dashboard.tableView') : t('dashboard.cardView')}
+              </button>
               <button
                 onClick={() => navigate('/history')}
                 className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
@@ -460,14 +469,14 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* Items Grid */}
+          {/* Items Display - Card or Table View */}
           {!loading && items.length === 0 && (
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
               <p className="text-gray-600 dark:text-gray-400 mb-4">{t('dashboard.noItems')}</p>
             </div>
           )}
 
-          {!loading && filteredItems.length > 0 && (
+          {!loading && filteredItems.length > 0 && viewMode === 'card' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredItems.map((item) => {
                 const itemTotal = item.quantity * (item.price_per_unit || 0);
@@ -567,6 +576,112 @@ const Dashboard = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Table View */}
+          {!loading && filteredItems.length > 0 && viewMode === 'table' && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('form.name')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('form.status')}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.quantity')}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.pricePerUnit')}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.total')}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredItems.map((item) => {
+                    const itemTotal = item.quantity * (item.price_per_unit || 0);
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{item.name}</div>
+                          {item.description && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{item.description}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {item.category && (
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                              {t(`status.${item.category === 'in_stock' ? 'inStock' : item.category === 'on_the_way' ? 'onTheWay' : 'needToOrder'}`)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-center space-x-2">
+                            <button
+                              onClick={() => handleQuickQuantityChange(item, -1)}
+                              disabled={item.quantity === 0}
+                              className="w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-xs"
+                              title={t('item.decrease')}
+                            >
+                              −
+                            </button>
+                            <span className="font-bold text-sm min-w-[30px] text-center dark:text-white">{item.quantity}</span>
+                            <button
+                              onClick={() => handleQuickQuantityChange(item, 1)}
+                              className="w-6 h-6 flex items-center justify-center bg-green-500 text-white rounded hover:bg-green-600 text-xs"
+                              title={t('item.increase')}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">
+                          {item.price_per_unit !== undefined && item.price_per_unit !== null && item.price_per_unit > 0
+                            ? `${Number(item.price_per_unit).toFixed(2)} ${item.currency}`
+                            : '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600 dark:text-green-400 text-right">
+                          {item.price_per_unit !== undefined && item.price_per_unit !== null && item.price_per_unit > 0
+                            ? `${Number(itemTotal).toFixed(2)} ${item.currency}`
+                            : '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                          <div className="flex items-center justify-center space-x-2">
+                            {item.category === 'need_to_order' && (
+                              <button
+                                onClick={() => handleMoveItem(item, 'on_the_way')}
+                                className="px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-xs"
+                                title={t('item.moveToOnTheWay')}
+                              >
+                                →
+                              </button>
+                            )}
+                            {item.category === 'on_the_way' && (
+                              <button
+                                onClick={() => handleMoveItem(item, 'in_stock')}
+                                className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs"
+                                title={t('item.moveToInStock')}
+                              >
+                                →
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleEditItem(item)}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                              title={t('item.edit')}
+                            >
+                              ✎
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                              title={t('item.delete')}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

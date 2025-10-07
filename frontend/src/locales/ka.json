@@ -17,7 +17,9 @@
     "grandTotal": "სრული ჯამი",
     "snapshotCreating": "იქმნება სურათი...",
     "snapshotCreated": "✓ სურათი შეიქმნა! {{count}} ნივთი შენახულია.",
-    "snapshotUpdated": "✓ სურათი განახლდა! {{count}} ნივთი შენახულია."
+    "snapshotUpdated": "✓ სურათი განახლდა! {{count}} ნივთი შენახულია.",
+    "cardView": "ბარათების ხედი",
+    "tableView": "ცხრილის ხედი"
   },
   "item": {
     "quantity": "რაოდენობა",
