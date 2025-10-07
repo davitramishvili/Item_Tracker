@@ -13,7 +13,7 @@ export const getItemNames = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// Update an item name
+// Update an item name (and all items using that name)
 export const updateItemName = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
@@ -25,15 +25,19 @@ export const updateItemName = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const updated = await ItemNameModel.updateName(itemNameId, userId, name.trim());
-    if (!updated) {
+    const result = await ItemNameModel.updateName(itemNameId, userId, name.trim());
+    if (!result.success) {
       res.status(404).json({ error: 'Item name not found or duplicate name' });
       return;
     }
 
     const itemNames = await ItemNameModel.findByUserId(userId);
     const updatedItem = itemNames.find(item => item.id === itemNameId);
-    res.json({ itemName: updatedItem });
+    res.json({
+      itemName: updatedItem,
+      oldName: result.oldName,
+      message: 'Item name and all related items updated successfully'
+    });
   } catch (error) {
     console.error('Update item name error:', error);
     res.status(500).json({ error: 'Failed to update item name' });

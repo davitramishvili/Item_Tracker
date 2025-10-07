@@ -37,9 +37,21 @@ export class ItemNameModel {
     }
   }
 
-  // Update an item name
-  static async updateName(id: number, userId: number, name: string): Promise<boolean> {
+  // Update an item name and all items using that name
+  static async updateName(id: number, userId: number, name: string): Promise<{success: boolean, oldName?: string}> {
     const trimmedName = name.trim();
+
+    // Get the current name before updating
+    const [current] = await promisePool.query<RowDataPacket[]>(
+      'SELECT name FROM item_names WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    if (current.length === 0) {
+      return { success: false };
+    }
+
+    const oldName = current[0].name;
 
     // Check if another name with the same value exists (case-insensitive, excluding current id)
     const [existing] = await promisePool.query<RowDataPacket[]>(
@@ -49,15 +61,26 @@ export class ItemNameModel {
 
     // If duplicate exists, return false
     if (existing.length > 0) {
-      return false;
+      return { success: false };
     }
 
-    // Update the name
+    // Update the name in item_names table
     const [result] = await promisePool.query<ResultSetHeader>(
       'UPDATE item_names SET name = ? WHERE id = ? AND user_id = ?',
       [trimmedName, id, userId]
     );
-    return result.affectedRows > 0;
+
+    if (result.affectedRows === 0) {
+      return { success: false };
+    }
+
+    // Update all items with the old name to the new name
+    await promisePool.query(
+      'UPDATE items SET name = ? WHERE user_id = ? AND name = ?',
+      [trimmedName, userId, oldName]
+    );
+
+    return { success: true, oldName };
   }
 
   // Delete an item name
