@@ -87,7 +87,7 @@ async function setupCompleteDatabase() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS item_snapshots (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        item_id INT NOT NULL,
+        item_id INT NULL,
         user_id INT NOT NULL,
         name VARCHAR(255) NOT NULL,
         quantity INT NOT NULL,
@@ -97,9 +97,8 @@ async function setupCompleteDatabase() {
         snapshot_date DATE NOT NULL,
         snapshot_type ENUM('auto', 'manual') DEFAULT 'auto',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE NO ACTION,
+        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE SET NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_item_snapshot (item_id, snapshot_date),
         INDEX idx_snapshot_date (snapshot_date),
         INDEX idx_item_id (item_id)
       )
