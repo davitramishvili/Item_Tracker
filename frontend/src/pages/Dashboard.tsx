@@ -1023,10 +1023,9 @@ const Dashboard = () => {
       {/* Sell Item Modal */}
       {showSellModal && sellingItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4 dark:text-white">{t('sales.sellItem')}: {sellingItem.name}</h3>
-
-            <form onSubmit={handleSellItem}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[90vh] flex flex-col">
+            <div className="p-6 overflow-y-auto flex-1">
+              <h3 className="text-xl font-bold mb-4 dark:text-white">{t('sales.sellItem')}: {sellingItem.name}</h3>
               <div className="space-y-4">
                 {/* Available Stock Info */}
                 <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 dark:border-blue-500 p-3">
@@ -1127,22 +1126,25 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-
-              <div className="flex space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowSellModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  {t('form.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {submitting ? t('sales.selling') : t('sales.createSale')}
-                </button>
+            </div>
+            <form onSubmit={handleSellItem}>
+              <div className="p-6 pt-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowSellModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    {t('form.cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {submitting ? t('sales.selling') : t('sales.createSale')}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

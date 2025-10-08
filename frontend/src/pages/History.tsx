@@ -552,8 +552,8 @@ const History = () => {
                     <div key={sale.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{sale.item_name}</h3>
-                          <span className={`inline-block mt-1 px-2 py-1 text-xs rounded-full ${
+                          <h3 className="text-xl font-bold text-gray-800 dark:text-white">{sale.item_name}</h3>
+                          <span className={`inline-block mt-1 px-3 py-1 text-sm rounded-full ${
                             sale.status === 'active'
                               ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
@@ -562,10 +562,10 @@ const History = () => {
                           </span>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                             {Number(sale.total_amount).toFixed(2)} {sale.currency}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             {new Date(sale.created_at).toLocaleString()}
                           </div>
                         </div>
@@ -573,31 +573,31 @@ const History = () => {
 
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.quantitySold')}:</span>
-                          <div className="font-semibold dark:text-white">{sale.quantity_sold}</div>
+                          <span className="text-base text-gray-500 dark:text-gray-400">{t('sales.quantitySold')}:</span>
+                          <div className="text-lg font-semibold dark:text-white">{sale.quantity_sold}</div>
                         </div>
                         <div>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('item.pricePerUnit')}:</span>
-                          <div className="font-semibold dark:text-white">{Number(sale.sale_price).toFixed(2)} {sale.currency}</div>
+                          <span className="text-base text-gray-500 dark:text-gray-400">{t('item.pricePerUnit')}:</span>
+                          <div className="text-lg font-semibold dark:text-white">{Number(sale.sale_price).toFixed(2)} {sale.currency}</div>
                         </div>
                         {sale.buyer_name && (
                           <div>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.buyerName')}:</span>
-                            <div className="font-semibold dark:text-white">{sale.buyer_name}</div>
+                            <span className="text-base text-gray-500 dark:text-gray-400">{t('sales.buyerName')}:</span>
+                            <div className="text-lg font-semibold dark:text-white">{sale.buyer_name}</div>
                           </div>
                         )}
                         {sale.buyer_phone && (
                           <div>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.buyerPhone')}:</span>
-                            <div className="font-semibold dark:text-white">{sale.buyer_phone}</div>
+                            <span className="text-base text-gray-500 dark:text-gray-400">{t('sales.buyerPhone')}:</span>
+                            <div className="text-lg font-semibold dark:text-white">{sale.buyer_phone}</div>
                           </div>
                         )}
                       </div>
 
                       {sale.notes && (
                         <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.notes')}:</span>
-                          <div className="text-sm dark:text-white mt-1">{sale.notes}</div>
+                          <span className="text-base text-gray-500 dark:text-gray-400">{t('sales.notes')}:</span>
+                          <div className="text-base dark:text-white mt-1">{sale.notes}</div>
                         </div>
                       )}
 
