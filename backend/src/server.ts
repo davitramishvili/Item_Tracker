@@ -7,6 +7,8 @@ import authRoutes from './routes/authRoutes';
 import itemRoutes from './routes/itemRoutes';
 import historyRoutes from './routes/historyRoutes';
 import itemNameRoutes from './routes/itemNameRoutes';
+import saleRoutes from './routes/saleRoutes';
+import { SnapshotScheduler } from './services/snapshotScheduler';
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +33,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/item-names', itemNameRoutes);
+app.use('/api/sales', saleRoutes);
 // app.use('/api/users', userRoutes);
 
 // 404 handler
@@ -49,6 +52,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+
+  // Start the snapshot scheduler
+  SnapshotScheduler.start();
 });
 
 export default app;
