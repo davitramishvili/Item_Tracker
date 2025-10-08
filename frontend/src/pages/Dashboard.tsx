@@ -7,6 +7,7 @@ import type { Item, CreateItemData, UpdateItemData } from '../types/item';
 import { itemService } from '../services/itemService';
 import { historyService } from '../services/historyService';
 import { itemNameService } from '../services/itemNameService';
+import { saleService } from '../services/saleService';
 
 const STATUS_OPTIONS = [
   { value: 'in_stock', labelKey: 'status.inStock' },
@@ -37,6 +38,18 @@ const Dashboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const [snapshotMessage, setSnapshotMessage] = useState('');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+
+  // Sell modal state
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [sellingItem, setSellingItem] = useState<Item | null>(null);
+  const [sellFormData, setSellFormData] = useState({
+    quantity_sold: 1,
+    sale_price: 0,
+    buyer_name: '',
+    buyer_phone: '',
+    notes: '',
+    sale_date: new Date().toISOString().split('T')[0]
+  });
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -111,6 +124,40 @@ const Dashboard = () => {
       setItems(items.filter(item => item.id !== id));
     } catch (err: any) {
       setError(err.response?.data?.error || t('errors.failedToDeleteItem'));
+    }
+  };
+
+  const handleOpenSellModal = (item: Item) => {
+    setSellingItem(item);
+    setSellFormData({
+      quantity_sold: 1,
+      sale_price: item.price_per_unit || 0,
+      buyer_name: '',
+      buyer_phone: '',
+      notes: '',
+      sale_date: new Date().toISOString().split('T')[0]
+    });
+    setShowSellModal(true);
+  };
+
+  const handleSellItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sellingItem) return;
+
+    setSubmitting(true);
+    try {
+      await saleService.create({
+        item_id: sellingItem.id,
+        ...sellFormData
+      });
+      await loadItems(); // Refresh to show updated quantity
+      setShowSellModal(false);
+      setSnapshotMessage(t('sales.saleCreated'));
+      setTimeout(() => setSnapshotMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || t('errors.failedToAddItem'));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -575,6 +622,16 @@ const Dashboard = () => {
                         </div>
                       )}
 
+                      {/* Sell Button (In Stock items only) */}
+                      {item.category === 'in_stock' && item.quantity > 0 && (
+                        <button
+                          onClick={() => handleOpenSellModal(item)}
+                          className="w-full mt-3 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          💰 {t('sales.sellItem')}
+                        </button>
+                      )}
+
                       {/* Move/Transfer Button */}
                       {item.category === 'need_to_order' && (
                         <button
@@ -663,6 +720,15 @@ const Dashboard = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                           <div className="flex items-center justify-center space-x-2">
+                            {item.category === 'in_stock' && item.quantity > 0 && (
+                              <button
+                                onClick={() => handleOpenSellModal(item)}
+                                className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                                title={t('sales.sellItem')}
+                              >
+                                💰
+                              </button>
+                            )}
                             {item.category === 'need_to_order' && (
                               <button
                                 onClick={() => handleMoveItem(item, 'on_the_way')}
@@ -947,6 +1013,135 @@ const Dashboard = () => {
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   {submitting ? t('form.updating') : t('form.updateItem')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sell Item Modal */}
+      {showSellModal && sellingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <h3 className="text-xl font-bold mb-4 dark:text-white">{t('sales.sellItem')}: {sellingItem.name}</h3>
+
+            <form onSubmit={handleSellItem}>
+              <div className="space-y-4">
+                {/* Available Stock Info */}
+                <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 dark:border-blue-500 p-3">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {t('sales.availableStock', { quantity: sellingItem.quantity })}
+                  </p>
+                </div>
+
+                {/* Quantity Sold */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.quantitySold')} {t('form.required')}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={sellingItem.quantity}
+                    required
+                    value={sellFormData.quantity_sold}
+                    onChange={(e) => setSellFormData({ ...sellFormData, quantity_sold: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Sale Price */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.salePrice')} ({sellingItem.currency}) {t('form.required')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={sellFormData.sale_price}
+                    onChange={(e) => setSellFormData({ ...sellFormData, sale_price: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Total Amount Display */}
+                <div className="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-400 dark:border-green-500 p-3">
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    {t('sales.totalAmount')}: <span className="font-bold">{(sellFormData.quantity_sold * sellFormData.sale_price).toFixed(2)} {sellingItem.currency}</span>
+                  </p>
+                </div>
+
+                {/* Buyer Name (Optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.buyerName')} <span className="text-gray-400 text-xs">{t('sales.optionalField')}</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={sellFormData.buyer_name}
+                    onChange={(e) => setSellFormData({ ...sellFormData, buyer_name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Buyer Phone (Optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.buyerPhone')} <span className="text-gray-400 text-xs">{t('sales.optionalField')}</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={sellFormData.buyer_phone}
+                    onChange={(e) => setSellFormData({ ...sellFormData, buyer_phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Notes (Optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.notes')} <span className="text-gray-400 text-xs">{t('sales.optionalField')}</span>
+                  </label>
+                  <textarea
+                    value={sellFormData.notes}
+                    onChange={(e) => setSellFormData({ ...sellFormData, notes: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Sale Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.saleDate')} {t('form.required')}
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={sellFormData.sale_date}
+                    onChange={(e) => setSellFormData({ ...sellFormData, sale_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowSellModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  {t('form.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {submitting ? t('sales.selling') : t('sales.createSale')}
                 </button>
               </div>
             </form>

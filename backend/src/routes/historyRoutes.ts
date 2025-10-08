@@ -4,7 +4,8 @@ import {
   getItemSnapshots,
   createManualSnapshot,
   getSnapshotsByDate,
-  checkSnapshotToday
+  checkSnapshotToday,
+  deleteSnapshot
 } from '../controllers/historyController';
 import { authenticate } from '../middlewares/auth';
 
@@ -27,5 +28,8 @@ router.get('/snapshots/date/:date', getSnapshotsByDate);
 
 // Check if snapshot exists for today
 router.get('/snapshot/today', checkSnapshotToday);
+
+// Delete a snapshot
+router.delete('/snapshot/:snapshotId', deleteSnapshot);
 
 export default router;

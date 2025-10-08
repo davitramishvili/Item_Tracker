@@ -146,4 +146,14 @@ export class HistoryModel {
 
     return (rows[0] as any).count > 0;
   }
+
+  // Delete a snapshot
+  static async deleteSnapshot(snapshotId: number, userId: number): Promise<boolean> {
+    const [result] = await promisePool.execute<ResultSetHeader>(
+      'DELETE FROM item_snapshots WHERE id = ? AND user_id = ?',
+      [snapshotId, userId]
+    );
+
+    return result.affectedRows > 0;
+  }
 }

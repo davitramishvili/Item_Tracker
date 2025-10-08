@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { historyService } from '../services/historyService';
+import { saleService, type Sale } from '../services/saleService';
 import type { ItemSnapshot } from '../types/history';
 
 const STATUS_OPTIONS = [
@@ -17,28 +18,47 @@ const History = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const [activeTab, setActiveTab] = useState<'snapshots' | 'sales'>('snapshots');
   const [snapshots, setSnapshots] = useState<ItemSnapshot[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [showEditSaleModal, setShowEditSaleModal] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [returningSale, setReturningSale] = useState<Sale | null>(null);
+  const [editSaleFormData, setEditSaleFormData] = useState({
+    quantity_sold: 1,
+    sale_price: 0,
+    buyer_name: '',
+    buyer_phone: '',
+    notes: '',
+    sale_date: new Date().toISOString().split('T')[0]
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  // Load today's snapshots on mount
+  // Load today's data on mount
   useEffect(() => {
-    loadTodaySnapshots();
+    loadTodayData();
   }, []);
 
-  const loadTodaySnapshots = async () => {
+  const loadTodayData = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    setSelectedDate(today);
+    await Promise.all([loadSnapshotsByDate(today), loadSalesByDate(today)]);
+  };
+
+  const loadSnapshotsByDate = async (date: string) => {
     try {
       setLoading(true);
-      const today = new Date().toISOString().split('T')[0];
-      setSelectedDate(today);
-      const data = await historyService.getSnapshotsByDate(today);
+      const data = await historyService.getSnapshotsByDate(date);
       // Sort alphabetically by name (supports both Georgian and English)
       const sortedData = data.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
       setSnapshots(sortedData);
@@ -50,19 +70,25 @@ const History = () => {
     }
   };
 
-  const loadSnapshotsByDate = async (date: string) => {
+  const loadSalesByDate = async (date: string) => {
     try {
       setLoading(true);
-      const data = await historyService.getSnapshotsByDate(date);
-      // Sort alphabetically by name (supports both Georgian and English)
-      const sortedData = data.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-      setSnapshots(sortedData);
-      setSelectedDate(date);
+      const data = await saleService.getByDate(date);
+      setSales(data);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.error || t('errors.failedToLoadSnapshots'));
+      setError(err.response?.data?.error || 'Failed to load sales');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDateChange = async (date: string) => {
+    setSelectedDate(date);
+    if (activeTab === 'snapshots') {
+      await loadSnapshotsByDate(date);
+    } else {
+      await loadSalesByDate(date);
     }
   };
 
@@ -98,6 +124,107 @@ const History = () => {
 
   const getCategoryPrefix = (category: string) => {
     return category === 'need_to_order' ? '-' : '';
+  };
+
+  // Sale handlers
+  const handleEditSale = (sale: Sale) => {
+    setEditingSale(sale);
+    // Ensure date is in YYYY-MM-DD format, handling timezone issues
+    let formattedDate: string;
+    if (sale.sale_date) {
+      // If the date contains 'T' or timezone info, parse and format it
+      if (sale.sale_date.includes('T') || sale.sale_date.includes('Z')) {
+        const dateObj = new Date(sale.sale_date);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      } else {
+        // Already in YYYY-MM-DD format
+        formattedDate = sale.sale_date;
+      }
+    } else {
+      formattedDate = new Date().toISOString().split('T')[0];
+    }
+
+    setEditSaleFormData({
+      quantity_sold: sale.quantity_sold,
+      sale_price: Number(sale.sale_price),
+      buyer_name: sale.buyer_name || '',
+      buyer_phone: sale.buyer_phone || '',
+      notes: sale.notes || '',
+      sale_date: formattedDate
+    });
+    setShowEditSaleModal(true);
+  };
+
+  const handleUpdateSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSale) return;
+
+    setSubmitting(true);
+    try {
+      await saleService.update(editingSale.id, {
+        ...editSaleFormData,
+        sale_price: Number(editSaleFormData.sale_price),
+        quantity_sold: Number(editSaleFormData.quantity_sold)
+      });
+
+      // Reload sales first
+      await loadSalesByDate(selectedDate);
+
+      // Then close modal and clear state
+      setShowEditSaleModal(false);
+      setEditingSale(null);
+      setError('');
+    } catch (err: any) {
+      setError(err.response?.data?.error || t('errors.failedToUpdateItem'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenReturnModal = (sale: Sale) => {
+    setReturningSale(sale);
+    setShowReturnModal(true);
+  };
+
+  const handleReturnSale = async (addToStock: boolean) => {
+    if (!returningSale) return;
+
+    setSubmitting(true);
+    try {
+      await saleService.returnSale(returningSale.id, addToStock);
+      await loadSalesByDate(selectedDate);
+      setShowReturnModal(false);
+      setReturningSale(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to return sale');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteSale = async (id: number) => {
+    if (!confirm(t('sales.deleteConfirm'))) return;
+
+    try {
+      await saleService.delete(id);
+      await loadSalesByDate(selectedDate);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to delete sale');
+    }
+  };
+
+  const handleDeleteSnapshot = async (id: number) => {
+    if (!confirm(t('history.deleteSnapshot') + '?')) return;
+
+    try {
+      await historyService.deleteSnapshot(id);
+      await loadSnapshotsByDate(selectedDate);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to delete snapshot');
+    }
   };
 
   return (
@@ -172,13 +299,37 @@ const History = () => {
               </button>
             </div>
 
+            {/* Tab Switcher */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setActiveTab('snapshots')}
+                className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                  activeTab === 'snapshots'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                📊 {t('history.snapshots')}
+              </button>
+              <button
+                onClick={() => setActiveTab('sales')}
+                className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                  activeTab === 'sales'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                💰 {t('history.sales')}
+              </button>
+            </div>
+
             {/* Date Selector */}
             <div className="flex items-center gap-4">
               <label className="text-gray-700 dark:text-gray-300 font-medium">{t('history.selectDate')}:</label>
               <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) => loadSnapshotsByDate(e.target.value)}
+                onChange={(e) => handleDateChange(e.target.value)}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -194,10 +345,15 @@ const History = () => {
           {/* Loading */}
           {loading && (
             <div className="text-center py-12">
-              <div className="text-gray-600 dark:text-gray-400">{t('history.loadingSnapshots')}</div>
+              <div className="text-gray-600 dark:text-gray-400">
+                {activeTab === 'snapshots' ? t('history.loadingSnapshots') : t('sales.loadingSales')}
+              </div>
             </div>
           )}
 
+          {/* Snapshots Tab Content */}
+          {activeTab === 'snapshots' && (
+            <>
           {/* Category Totals Section */}
           {!loading && snapshots.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -289,6 +445,14 @@ const History = () => {
                       <div className="text-xs text-gray-500 dark:text-gray-500 text-center pt-2">
                         {t('history.capturedAt', { time: new Date(snapshot.created_at).toLocaleString() })}
                       </div>
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handleDeleteSnapshot(snapshot.id!)}
+                        className="w-full mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+                      >
+                        🗑️ {t('history.deleteSnapshot')}
+                      </button>
                     </div>
                   </div>
                 );
@@ -309,6 +473,7 @@ const History = () => {
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.total')}</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('history.type')}</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('history.captured')}</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('profile.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -351,6 +516,15 @@ const History = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 text-center">
                           {new Date(snapshot.created_at).toLocaleString()}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <button
+                            onClick={() => handleDeleteSnapshot(snapshot.id!)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                            title={t('history.deleteSnapshot')}
+                          >
+                            🗑️
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -358,8 +532,241 @@ const History = () => {
               </table>
             </div>
           )}
+          </>
+          )}
+
+          {/* Sales Tab Content */}
+          {activeTab === 'sales' && (
+            <>
+              {/* No Sales */}
+              {!loading && sales.length === 0 && (
+                <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">{t('sales.noSales', { date: selectedDate })}</p>
+                </div>
+              )}
+
+              {/* Sales List */}
+              {!loading && sales.length > 0 && (
+                <div className="space-y-4">
+                  {sales.map((sale) => (
+                    <div key={sale.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{sale.item_name}</h3>
+                          <span className={`inline-block mt-1 px-2 py-1 text-xs rounded-full ${
+                            sale.status === 'active'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                          }`}>
+                            {sale.status === 'active' ? t('sales.active') : t('sales.returned')}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {Number(sale.total_amount).toFixed(2)} {sale.currency}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(sale.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.quantitySold')}:</span>
+                          <div className="font-semibold dark:text-white">{sale.quantity_sold}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('item.pricePerUnit')}:</span>
+                          <div className="font-semibold dark:text-white">{Number(sale.sale_price).toFixed(2)} {sale.currency}</div>
+                        </div>
+                        {sale.buyer_name && (
+                          <div>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.buyerName')}:</span>
+                            <div className="font-semibold dark:text-white">{sale.buyer_name}</div>
+                          </div>
+                        )}
+                        {sale.buyer_phone && (
+                          <div>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.buyerPhone')}:</span>
+                            <div className="font-semibold dark:text-white">{sale.buyer_phone}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {sale.notes && (
+                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.notes')}:</span>
+                          <div className="text-sm dark:text-white mt-1">{sale.notes}</div>
+                        </div>
+                      )}
+
+                      {sale.status === 'active' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditSale(sale)}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                          >
+                            ✎ {t('sales.editSale')}
+                          </button>
+                          <button
+                            onClick={() => handleOpenReturnModal(sale)}
+                            className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-sm font-medium"
+                          >
+                            ↩ {t('sales.returnSale')}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSale(sale.id)}
+                            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+
+      {/* Edit Sale Modal */}
+      {showEditSaleModal && editingSale && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4 dark:text-white">{t('sales.editSale')}</h3>
+            <form onSubmit={handleUpdateSale}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.quantitySold')}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editSaleFormData.quantity_sold}
+                    onChange={(e) => setEditSaleFormData({ ...editSaleFormData, quantity_sold: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.salePrice')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={editSaleFormData.sale_price}
+                    onChange={(e) => setEditSaleFormData({ ...editSaleFormData, sale_price: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.buyerName')}
+                  </label>
+                  <input
+                    type="text"
+                    value={editSaleFormData.buyer_name}
+                    onChange={(e) => setEditSaleFormData({ ...editSaleFormData, buyer_name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.buyerPhone')}
+                  </label>
+                  <input
+                    type="text"
+                    value={editSaleFormData.buyer_phone}
+                    onChange={(e) => setEditSaleFormData({ ...editSaleFormData, buyer_phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.notes')}
+                  </label>
+                  <textarea
+                    value={editSaleFormData.notes}
+                    onChange={(e) => setEditSaleFormData({ ...editSaleFormData, notes: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('sales.saleDate')}
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={editSaleFormData.sale_date}
+                    onChange={(e) => setEditSaleFormData({ ...editSaleFormData, sale_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEditSaleModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  {t('form.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {submitting ? t('form.updating') : t('form.save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Return Sale Modal */}
+      {showReturnModal && returningSale && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <h3 className="text-xl font-bold mb-4 dark:text-white">{t('sales.returnSale')}</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {t('sales.returnConfirm')}
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleReturnSale(true)}
+                disabled={submitting}
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                ✓ {t('sales.addToStock')}
+              </button>
+              <button
+                onClick={() => handleReturnSale(false)}
+                disabled={submitting}
+                className="w-full px-4 py-3 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 transition-colors"
+              >
+                ✗ {t('sales.discardItem')}
+              </button>
+              <button
+                onClick={() => setShowReturnModal(false)}
+                disabled={submitting}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                {t('form.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

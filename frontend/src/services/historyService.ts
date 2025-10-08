@@ -49,5 +49,12 @@ export const historyService = {
       headers: getAuthHeader()
     });
     return response.data;
+  },
+
+  // Delete a snapshot
+  async deleteSnapshot(snapshotId: number): Promise<void> {
+    await axios.delete(`${API_URL}/snapshot/${snapshotId}`, {
+      headers: getAuthHeader()
+    });
   }
 };
