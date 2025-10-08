@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSale, getSalesByDate, updateSale, returnSale, deleteSale } from '../controllers/saleController';
+import { createSale, createMultiItemSale, getSalesByDate, updateSale, returnSale, deleteSale } from '../controllers/saleController';
 import { authenticate } from '../middlewares/auth';
 
 const router = Router();
@@ -9,6 +9,9 @@ router.use(authenticate);
 
 // Create a new sale
 router.post('/', createSale);
+
+// Create a multi-item sale
+router.post('/multi', createMultiItemSale);
 
 // Get sales by date
 router.get('/', getSalesByDate);

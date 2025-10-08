@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { SaleModel, CreateSaleData, UpdateSaleData } from '../models/Sale';
+import { SaleModel, CreateSaleData, UpdateSaleData, CreateMultiItemSaleData } from '../models/Sale';
+import { SaleGroupModel } from '../models/SaleGroup';
 import { ItemModel } from '../models/Item';
 
 // Create a new sale
@@ -63,7 +64,87 @@ export const createSale = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-// Get sales by date
+// Create a multi-item sale
+export const createMultiItemSale = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.userId;
+    const { items, buyer_name, buyer_phone, notes, sale_date } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ error: 'At least one item is required' });
+      return;
+    }
+
+    // Validate all items before creating the sale
+    for (const itemData of items) {
+      if (!itemData.item_id || !itemData.quantity_sold || !itemData.sale_price) {
+        res.status(400).json({ error: 'Each item must have item_id, quantity_sold, and sale_price' });
+        return;
+      }
+
+      const item = await ItemModel.findById(itemData.item_id, userId);
+      if (!item) {
+        res.status(404).json({ error: `Item with ID ${itemData.item_id} not found` });
+        return;
+      }
+
+      if (item.category !== 'in_stock') {
+        res.status(400).json({ error: `${item.name} is not in stock` });
+        return;
+      }
+
+      if ((item.quantity || 0) < itemData.quantity_sold) {
+        res.status(400).json({ error: `Insufficient stock for ${item.name}. Available: ${item.quantity || 0}` });
+        return;
+      }
+    }
+
+    // Get full item details and prepare data
+    const itemsWithDetails = await Promise.all(
+      items.map(async (itemData: any) => {
+        const item = await ItemModel.findById(itemData.item_id, userId);
+        return {
+          item_id: item!.id!,
+          item_name: item!.name,
+          quantity_sold: parseInt(itemData.quantity_sold),
+          sale_price: parseFloat(itemData.sale_price),
+          currency: item!.currency || 'USD',
+          notes: itemData.notes || null
+        };
+      })
+    );
+
+    const saleData: CreateMultiItemSaleData = {
+      user_id: userId,
+      buyer_name,
+      buyer_phone,
+      notes,
+      sale_date: sale_date || new Date().toISOString().split('T')[0],
+      items: itemsWithDetails
+    };
+
+    const saleGroupId = await SaleModel.createMultiItem(saleData);
+
+    // Reduce quantities for all items
+    for (const itemData of items) {
+      const item = await ItemModel.findById(itemData.item_id, userId);
+      if (item) {
+        const newQuantity = (item.quantity || 0) - itemData.quantity_sold;
+        await ItemModel.update(itemData.item_id, userId, { quantity: newQuantity });
+      }
+    }
+
+    res.status(201).json({
+      message: 'Multi-item sale created successfully',
+      saleGroupId
+    });
+  } catch (error) {
+    console.error('Create multi-item sale error:', error);
+    res.status(500).json({ error: 'Failed to create multi-item sale' });
+  }
+};
+
+// Get sales by date (grouped)
 export const getSalesByDate = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
@@ -74,8 +155,8 @@ export const getSalesByDate = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const sales = await SaleModel.findByDate(userId, date);
-    res.json({ sales });
+    const salesGroups = await SaleModel.findGroupedByDate(userId, date);
+    res.json({ sales: salesGroups });
   } catch (error) {
     console.error('Get sales error:', error);
     res.status(500).json({ error: 'Failed to fetch sales' });

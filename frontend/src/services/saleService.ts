@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 export interface Sale {
   id: number;
   user_id: number;
+  sale_group_id: number | null;
   item_id: number;
   item_name: string;
   quantity_sold: number;
@@ -16,8 +17,19 @@ export interface Sale {
   notes: string | null;
   sale_date: string;
   status: 'active' | 'returned';
+  returned_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface SaleGroup {
+  group_id: number;
+  buyer_name: string | null;
+  buyer_phone: string | null;
+  notes: string | null;
+  sale_date: string;
+  created_at: string;
+  items: Sale[];
 }
 
 export interface CreateSaleData {
@@ -28,6 +40,19 @@ export interface CreateSaleData {
   buyer_phone?: string;
   notes?: string;
   sale_date?: string;
+}
+
+export interface CreateMultiItemSaleData {
+  buyer_name?: string;
+  buyer_phone?: string;
+  notes?: string;
+  sale_date?: string;
+  items: {
+    item_id: number;
+    quantity_sold: number;
+    sale_price: number;
+    notes?: string;
+  }[];
 }
 
 export interface UpdateSaleData {
@@ -53,8 +78,17 @@ export const saleService = {
     return response.data;
   },
 
-  // Get sales by date
-  getByDate: async (date: string): Promise<Sale[]> => {
+  // Create a multi-item sale
+  createMultiItem: async (data: CreateMultiItemSaleData): Promise<any> => {
+    const token = getAuthToken();
+    const response = await axios.post(`${API_URL}/sales/multi`, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  // Get sales by date (returns grouped sales)
+  getByDate: async (date: string): Promise<SaleGroup[]> => {
     const token = getAuthToken();
     const response = await axios.get(`${API_URL}/sales?date=${date}`, {
       headers: { Authorization: `Bearer ${token}` },
