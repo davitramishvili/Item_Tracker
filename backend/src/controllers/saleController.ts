@@ -33,21 +33,24 @@ export const createSale = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // Create sale record
-    const saleData: CreateSaleData = {
+    // Create sale using multi-item structure (single item in a group)
+    const saleData: CreateMultiItemSaleData = {
       user_id: userId,
-      item_id: item.id!,
-      item_name: item.name,
-      quantity_sold: parseInt(quantity_sold),
-      sale_price: parseFloat(sale_price),
-      currency: item.currency || 'USD',
       buyer_name,
       buyer_phone,
       notes,
-      sale_date: sale_date || new Date().toISOString().split('T')[0]
+      sale_date: sale_date || new Date().toISOString().split('T')[0],
+      items: [{
+        item_id: item.id!,
+        item_name: item.name,
+        quantity_sold: parseInt(quantity_sold),
+        sale_price: parseFloat(sale_price),
+        currency: item.currency || 'USD',
+        notes: notes || null
+      }]
     };
 
-    const saleId = await SaleModel.create(saleData);
+    const saleGroupId = await SaleModel.createMultiItem(saleData);
 
     // Reduce item quantity
     const newQuantity = (item.quantity || 0) - quantity_sold;
@@ -55,7 +58,7 @@ export const createSale = async (req: Request, res: Response): Promise<void> => 
 
     res.status(201).json({
       message: 'Sale created successfully',
-      saleId,
+      saleGroupId,
       newQuantity
     });
   } catch (error) {
