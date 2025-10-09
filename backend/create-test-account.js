@@ -72,9 +72,9 @@ async function createTestAccount() {
       const hashedPassword = await bcrypt.hash(TEST_PASSWORD, 10);
 
       const [result] = await connection.execute(
-        `INSERT INTO users (email, username, password_hash, full_name, email_verified)
+        `INSERT INTO users (email, username, password_hash, full_name, is_verified)
          VALUES (?, ?, ?, ?, ?)`,
-        [TEST_EMAIL, TEST_USERNAME, hashedPassword, TEST_FULL_NAME, true]
+        [TEST_EMAIL, TEST_USERNAME, hashedPassword, TEST_FULL_NAME, 1]
       );
 
       testUserId = result.insertId;
