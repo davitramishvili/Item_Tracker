@@ -209,11 +209,29 @@ const Dashboard = () => {
 
       await loadItems(); // Refresh to show updated quantities
 
-      // Note: We no longer auto-delete items with 0 stock because:
-      // 1. Sales reference items by item_id (foreign key constraint)
-      // 2. Items with 0 stock should remain for historical reference
-      // 3. Users can manually delete items if needed
-      // Items will be refreshed automatically to show updated quantities
+      // Auto-delete items that reached 0 stock (after sale is committed)
+      // Wait a moment to ensure sale is fully saved in backend
+      setTimeout(async () => {
+        const itemsToDelete: number[] = [];
+        soldItemsMap.forEach((quantitySold, itemId) => {
+          const currentItem = items.find(i => i.id === itemId);
+          if (currentItem && currentItem.quantity - quantitySold === 0) {
+            itemsToDelete.push(itemId);
+          }
+        });
+
+        if (itemsToDelete.length > 0) {
+          for (const itemId of itemsToDelete) {
+            try {
+              await itemService.delete(itemId);
+            } catch (err: any) {
+              console.error(`Failed to delete item ${itemId}:`, err);
+              // Ignore deletion errors - item will remain with 0 stock
+            }
+          }
+          await loadItems(); // Refresh after deletions
+        }
+      }, 500); // Wait 500ms for sale to be fully committed
 
       setShowSellModal(false);
       setIsMultiItemSale(false);
