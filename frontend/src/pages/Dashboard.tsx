@@ -42,6 +42,7 @@ const Dashboard = () => {
   // Sell modal state
   const [showSellModal, setShowSellModal] = useState(false);
   const [sellingItem, setSellingItem] = useState<Item | null>(null);
+  const [isMultiItemSale, setIsMultiItemSale] = useState(false);
   const [sellFormData, setSellFormData] = useState({
     quantity_sold: 1,
     sale_price: 0,
@@ -50,6 +51,12 @@ const Dashboard = () => {
     notes: '',
     sale_date: new Date().toISOString().split('T')[0]
   });
+  const [additionalItems, setAdditionalItems] = useState<Array<{
+    item_id: number | null;
+    quantity_sold: number;
+    sale_price: number;
+    notes: string;
+  }>>([]);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -144,14 +151,88 @@ const Dashboard = () => {
     e.preventDefault();
     if (!sellingItem) return;
 
+    // Validate that all additional items have an item selected
+    if (isMultiItemSale && additionalItems.length > 0) {
+      const hasInvalidItems = additionalItems.some(item => item.item_id === null);
+      if (hasInvalidItems) {
+        setError('Please select an item for all additional items in the multi-item sale');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
-      await saleService.create({
-        item_id: sellingItem.id,
-        ...sellFormData
+      // Track item IDs and quantities sold before making the sale
+      const soldItemsMap = new Map<number, number>();
+
+      if (isMultiItemSale && additionalItems.length > 0) {
+        // Create multi-item sale - filter out null item_ids (should not happen due to validation above)
+        const validAdditionalItems = additionalItems.filter(item => item.item_id !== null) as Array<{
+          item_id: number;
+          quantity_sold: number;
+          sale_price: number;
+          notes: string;
+        }>;
+
+        const allItems = [
+          {
+            item_id: sellingItem.id,
+            quantity_sold: sellFormData.quantity_sold,
+            sale_price: sellFormData.sale_price,
+            notes: sellFormData.notes || ''
+          },
+          ...validAdditionalItems
+        ];
+
+        // Track all items being sold
+        soldItemsMap.set(sellingItem.id, sellFormData.quantity_sold);
+        validAdditionalItems.forEach(addItem => {
+          soldItemsMap.set(addItem.item_id, addItem.quantity_sold);
+        });
+
+        await saleService.createMultiItem({
+          buyer_name: sellFormData.buyer_name,
+          buyer_phone: sellFormData.buyer_phone,
+          notes: '', // Group notes separate from item notes
+          sale_date: sellFormData.sale_date,
+          items: allItems
+        });
+      } else {
+        // Single item sale
+        soldItemsMap.set(sellingItem.id, sellFormData.quantity_sold);
+
+        await saleService.create({
+          item_id: sellingItem.id,
+          ...sellFormData
+        });
+      }
+
+      await loadItems(); // Refresh to show updated quantities
+
+      // Check which items now have 0 stock and auto-delete them
+      const itemsToDelete: number[] = [];
+      soldItemsMap.forEach((quantitySold, itemId) => {
+        const currentItem = items.find(i => i.id === itemId);
+        if (currentItem && currentItem.quantity - quantitySold === 0) {
+          itemsToDelete.push(itemId);
+        }
       });
-      await loadItems(); // Refresh to show updated quantity
+
+      // Delete items with 0 stock
+      if (itemsToDelete.length > 0) {
+        for (const itemId of itemsToDelete) {
+          try {
+            await itemService.delete(itemId);
+          } catch (err: any) {
+            console.error(`Failed to delete item ${itemId}:`, err);
+          }
+        }
+        await loadItems(); // Refresh again after deletions
+      }
+
       setShowSellModal(false);
+      setIsMultiItemSale(false);
+      setAdditionalItems([]);
       setSnapshotMessage(t('sales.saleCreated'));
       setTimeout(() => setSnapshotMessage(''), 3000);
     } catch (err: any) {
@@ -159,6 +240,26 @@ const Dashboard = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAddAdditionalItem = () => {
+    // Add a blank item - user will choose which item to sell
+    setAdditionalItems([...additionalItems, {
+      item_id: null,
+      quantity_sold: 1,
+      sale_price: 0,
+      notes: ''
+    }]);
+  };
+
+  const handleRemoveAdditionalItem = (index: number) => {
+    setAdditionalItems(additionalItems.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateAdditionalItem = (index: number, field: string, value: any) => {
+    const updated = [...additionalItems];
+    updated[index] = { ...updated[index], [field]: value };
+    setAdditionalItems(updated);
   };
 
   const handleEditItem = (item: Item) => {
@@ -209,6 +310,24 @@ const Dashboard = () => {
 
   const handleQuickQuantityChange = async (item: Item, change: number) => {
     const newQuantity = Math.max(0, item.quantity + change);
+
+    // If quantity reaches 0, show confirmation dialog
+    if (newQuantity === 0) {
+      if (!confirm(t('item.deleteZeroStockConfirm'))) {
+        return;
+      }
+      // Delete the item
+      try {
+        await itemService.delete(item.id);
+        setItems(items.filter(i => i.id !== item.id));
+        setSnapshotMessage(t('item.deletedZeroStock'));
+        setTimeout(() => setSnapshotMessage(''), 3000);
+      } catch (err: any) {
+        setError(err.response?.data?.error || t('errors.failedToDeleteItem'));
+      }
+      return;
+    }
+
     try {
       const updatedItem = await itemService.update(item.id, { quantity: newQuantity });
       setItems(items.map(i => i.id === item.id ? updatedItem : i));
@@ -667,7 +786,7 @@ const Dashboard = () => {
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.quantity')}</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.pricePerUnit')}</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.total')}</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('profile.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -792,7 +911,7 @@ const Dashboard = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Type or select from existing names"
+                    placeholder={t('sales.typeOrSelect')}
                   />
                   <datalist id="item-names-list">
                     {itemNames.map((name) => (
@@ -905,7 +1024,7 @@ const Dashboard = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Name *
+                    {t('form.name')} {t('form.required')}
                   </label>
                   <input
                     type="text"
@@ -914,7 +1033,7 @@ const Dashboard = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Type or select from existing names"
+                    placeholder={t('sales.typeOrSelect')}
                   />
                   <datalist id="item-names-list-edit">
                     {itemNames.map((name) => (
@@ -1111,6 +1230,171 @@ const Dashboard = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+
+                {/* Multi-Item Sale Toggle */}
+                <div className="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="multiItemSale"
+                    checked={isMultiItemSale}
+                    onChange={(e) => {
+                      setIsMultiItemSale(e.target.checked);
+                      if (!e.target.checked) {
+                        setAdditionalItems([]);
+                      }
+                    }}
+                    className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                  />
+                  <label htmlFor="multiItemSale" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                    💼 {t('sales.multiItemSale')}
+                  </label>
+                </div>
+
+                {/* Additional Items Section */}
+                {isMultiItemSale && (
+                  <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('sales.additionalItems')}</h4>
+                      <button
+                        type="button"
+                        onClick={handleAddAdditionalItem}
+                        className="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                      >
+                        + {t('sales.addItem')}
+                      </button>
+                    </div>
+
+                    {additionalItems.map((addItem, index) => {
+                      const selectedItem = items.find(i => i.id === addItem.item_id);
+
+                      // Get available items (not selected in OTHER dropdowns, but include current selection)
+                      const availableItems = items.filter(
+                        item => item.category === 'in_stock' &&
+                        item.id !== sellingItem.id &&
+                        (item.id === addItem.item_id || !additionalItems.some((ai, i) => i !== index && ai.item_id === item.id))
+                      );
+
+                      return (
+                        <div key={index} className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{t('sales.itemNumber', { number: index + 2 })}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAdditionalItem(index)}
+                              className="text-red-600 dark:text-red-400 hover:text-red-800 text-sm"
+                            >
+                              ✕
+                            </button>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('sales.item')}</label>
+                            <select
+                              value={addItem.item_id ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (!value) return;
+
+                                const itemId = parseInt(value);
+                                const item = items.find(i => i.id === itemId);
+
+                                // Update both fields at once to avoid inconsistencies
+                                const updated = [...additionalItems];
+                                updated[index] = {
+                                  ...updated[index],
+                                  item_id: itemId,
+                                  sale_price: item?.price_per_unit || 0
+                                };
+                                setAdditionalItems(updated);
+                              }}
+                              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
+                            >
+                              <option value="">{t('status.chooseItem')}</option>
+                              {availableItems.map(item => (
+                                <option key={item.id} value={item.id}>
+                                  {item.name} ({t('sales.stock')}: {item.quantity})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('sales.quantity')}</label>
+                              <input
+                                type="number"
+                                min="1"
+                                max={selectedItem?.quantity || 1}
+                                value={addItem.quantity_sold}
+                                onChange={(e) => handleUpdateAdditionalItem(index, 'quantity_sold', parseInt(e.target.value) || 1)}
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('sales.price')} ({selectedItem?.currency})</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={addItem.sale_price}
+                                onChange={(e) => handleUpdateAdditionalItem(index, 'sale_price', parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('sales.note')}</label>
+                            <input
+                              type="text"
+                              value={addItem.notes}
+                              onChange={(e) => handleUpdateAdditionalItem(index, 'notes', e.target.value)}
+                              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
+                              placeholder={t('sales.optionalNote')}
+                            />
+                          </div>
+
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            {t('sales.total')}: <span className="font-semibold">{(addItem.quantity_sold * addItem.sale_price).toFixed(2)} {selectedItem?.currency}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Grand Total for Multi-Item Sale */}
+                    {additionalItems.length > 0 && (() => {
+                      // Calculate totals by currency
+                      const currencyTotals: Record<string, number> = {};
+
+                      // Add the main item
+                      const mainCurrency = sellingItem.currency || 'USD';
+                      currencyTotals[mainCurrency] = sellFormData.quantity_sold * sellFormData.sale_price;
+
+                      // Add additional items
+                      additionalItems.forEach(addItem => {
+                        const item = items.find(i => i.id === addItem.item_id);
+                        const itemCurrency = item?.currency || 'USD';
+                        const itemTotal = addItem.quantity_sold * addItem.sale_price;
+                        currencyTotals[itemCurrency] = (currencyTotals[itemCurrency] || 0) + itemTotal;
+                      });
+
+                      return (
+                        <div className="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-400 dark:border-green-500 p-3">
+                          <p className="text-sm text-green-700 dark:text-green-300 font-semibold mb-2">
+                            {t('sales.grandTotal')}:
+                          </p>
+                          <div className="space-y-1">
+                            {Object.entries(currencyTotals).map(([currency, total]) => (
+                              <div key={currency} className="text-sm text-green-700 dark:text-green-300">
+                                <span className="font-bold">{total.toFixed(2)} {currency}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
 
                 {/* Sale Date */}
                 <div>

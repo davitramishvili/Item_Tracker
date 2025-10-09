@@ -31,10 +31,12 @@
     "decrease": "Decrease quantity",
     "increase": "Increase quantity",
     "deleteConfirm": "Are you sure you want to delete this item?",
+    "deleteZeroStockConfirm": "Quantity is now 0. Would you like to delete this item?",
     "moveToInStock": "Move to In Stock",
     "moveToOnTheWay": "Move to On Its Way",
     "moved": "Item moved successfully",
-    "merged": "Item merged with existing item"
+    "merged": "Item merged with existing item",
+    "deletedZeroStock": "Item deleted (stock reached 0)"
   },
   "form": {
     "name": "Name",
@@ -54,6 +56,7 @@
   },
   "status": {
     "choose": "Choose status...",
+    "chooseItem": "Choose item...",
     "inStock": "In Stock",
     "onTheWay": "On Its Way",
     "needToOrder": "Need to Order"
@@ -113,7 +116,25 @@
     "deleteConfirm": "Are you sure you want to delete this sale?",
     "optionalField": "(Optional)",
     "active": "Active",
-    "returned": "Returned"
+    "returned": "Returned",
+    "multiItemSale": "Multi-item sale",
+    "saleWithItems": "Sale ({{count}} items)",
+    "activeReturned": "{{active}} active, {{returned}} returned",
+    "total": "Total",
+    "returnedAt": "Returned",
+    "note": "Note",
+    "showMoreItems": "Show {{count}} more item",
+    "showMoreItems_plural": "Show {{count}} more items",
+    "additionalItems": "Additional Items",
+    "addItem": "Add Item",
+    "itemNumber": "Item #{{number}}",
+    "item": "Item",
+    "stock": "Stock",
+    "quantity": "Quantity",
+    "price": "Price",
+    "grandTotal": "Grand Total",
+    "optionalNote": "Optional note for this item",
+    "typeOrSelect": "Type or select from existing names"
   },
   "auth": {
     "login": "Login",

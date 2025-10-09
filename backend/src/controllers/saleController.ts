@@ -150,12 +150,15 @@ export const getSalesByDate = async (req: Request, res: Response): Promise<void>
     const userId = req.user!.userId;
     const { date } = req.query;
 
+    console.log('📅 getSalesByDate called - userId:', userId, 'date:', date);
+
     if (!date || typeof date !== 'string') {
       res.status(400).json({ error: 'Date is required' });
       return;
     }
 
     const salesGroups = await SaleModel.findGroupedByDate(userId, date);
+    console.log('✅ Found', salesGroups.length, 'sale groups');
     res.json({ sales: salesGroups });
   } catch (error) {
     console.error('Get sales error:', error);

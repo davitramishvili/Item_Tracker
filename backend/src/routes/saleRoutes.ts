@@ -7,11 +7,11 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
+// Create a multi-item sale (must come before '/')
+router.post('/multi', createMultiItemSale);
+
 // Create a new sale
 router.post('/', createSale);
-
-// Create a multi-item sale
-router.post('/multi', createMultiItemSale);
 
 // Get sales by date
 router.get('/', getSalesByDate);

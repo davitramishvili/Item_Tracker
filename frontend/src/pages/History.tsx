@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { historyService } from '../services/historyService';
-import { saleService, type Sale } from '../services/saleService';
+import { saleService, type Sale, type SaleGroup } from '../services/saleService';
 import type { ItemSnapshot } from '../types/history';
 
 const STATUS_OPTIONS = [
@@ -20,7 +20,7 @@ const History = () => {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<'snapshots' | 'sales'>('snapshots');
   const [snapshots, setSnapshots] = useState<ItemSnapshot[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
+  const [sales, setSales] = useState<SaleGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -29,6 +29,7 @@ const History = () => {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [returningSale, setReturningSale] = useState<Sale | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
   const [editSaleFormData, setEditSaleFormData] = useState({
     quantity_sold: 1,
     sale_price: 0,
@@ -225,6 +226,36 @@ const History = () => {
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete snapshot');
     }
+  };
+
+  const toggleGroupExpanded = (groupId: number) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
+  const getGroupGrandTotalByCurrency = (group: SaleGroup): Record<string, number> => {
+    if (!group.items || group.items.length === 0) return {};
+
+    const currencyTotals: Record<string, number> = {};
+    group.items.forEach(item => {
+      const currency = item.currency || 'USD';
+      const amount = parseFloat(item.total_amount.toString());
+      currencyTotals[currency] = (currencyTotals[currency] || 0) + amount;
+    });
+
+    return currencyTotals;
+  };
+
+  const getActiveItemsCount = (group: SaleGroup) => {
+    if (!group.items || group.items.length === 0) return 0;
+    return group.items.filter(item => item.status === 'active').length;
   };
 
   return (
@@ -548,83 +579,135 @@ const History = () => {
               {/* Sales List */}
               {!loading && sales.length > 0 && (
                 <div className="space-y-4">
-                  {sales.map((sale) => (
-                    <div key={sale.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                  {sales.filter(group => group.items && group.items.length > 0).map((group) => {
+                    const isExpanded = expandedGroups.has(group.group_id);
+                    const currencyTotals = getGroupGrandTotalByCurrency(group);
+                    const activeCount = getActiveItemsCount(group);
+                    const isMultiItem = group.items.length > 1;
+
+                    return (
+                    <div key={group.group_id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                      {/* Group Header */}
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-800 dark:text-white">{sale.item_name}</h3>
-                          <span className={`inline-block mt-1 px-3 py-1 text-sm rounded-full ${
-                            sale.status === 'active'
-                              ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
-                          }`}>
-                            {sale.status === 'active' ? t('sales.active') : t('sales.returned')}
-                          </span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            {isMultiItem && (
+                              <button
+                                onClick={() => toggleGroupExpanded(group.group_id)}
+                                className="text-2xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                              >
+                                {isExpanded ? '▼' : '▶'}
+                              </button>
+                            )}
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                              {isMultiItem ? `💼 ${t('sales.saleWithItems', { count: group.items.length })}` : group.items[0].item_name}
+                            </h3>
+                          </div>
+                          {activeCount < group.items.length && (
+                            <span className="inline-block px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-full">
+                              {t('sales.activeReturned', { active: activeCount, returned: group.items.length - activeCount })}
+                            </span>
+                          )}
                         </div>
                         <div className="text-right">
-                          <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                            {Number(sale.total_amount).toFixed(2)} {sale.currency}
+                          <div className="space-y-1">
+                            {Object.entries(currencyTotals).map(([currency, total]) => (
+                              <div key={currency} className="text-3xl font-bold text-green-600 dark:text-green-400">
+                                {total.toFixed(2)} {currency}
+                              </div>
+                            ))}
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {new Date(sale.created_at).toLocaleString()}
+                          <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                            {new Date(group.created_at).toLocaleString()}
                           </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <span className="text-base text-gray-500 dark:text-gray-400">{t('sales.quantitySold')}:</span>
-                          <div className="text-lg font-semibold dark:text-white">{sale.quantity_sold}</div>
+                      {/* Group buyer info */}
+                      {(group.buyer_name || group.buyer_phone || group.notes) && (
+                        <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          {group.buyer_name && (
+                            <div>
+                              <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.buyerName')}:</span>
+                              <div className="text-lg font-semibold dark:text-white">{group.buyer_name}</div>
+                            </div>
+                          )}
+                          {group.buyer_phone && (
+                            <div>
+                              <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.buyerPhone')}:</span>
+                              <div className="text-lg font-semibold dark:text-white">{group.buyer_phone}</div>
+                            </div>
+                          )}
+                          {group.notes && (
+                            <div className="col-span-2">
+                              <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.notes')}:</span>
+                              <div className="text-base dark:text-white mt-1">{group.notes}</div>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-base text-gray-500 dark:text-gray-400">{t('item.pricePerUnit')}:</span>
-                          <div className="text-lg font-semibold dark:text-white">{Number(sale.sale_price).toFixed(2)} {sale.currency}</div>
-                        </div>
-                        {sale.buyer_name && (
-                          <div>
-                            <span className="text-base text-gray-500 dark:text-gray-400">{t('sales.buyerName')}:</span>
-                            <div className="text-lg font-semibold dark:text-white">{sale.buyer_name}</div>
-                          </div>
-                        )}
-                        {sale.buyer_phone && (
-                          <div>
-                            <span className="text-base text-gray-500 dark:text-gray-400">{t('sales.buyerPhone')}:</span>
-                            <div className="text-lg font-semibold dark:text-white">{sale.buyer_phone}</div>
-                          </div>
+                      )}
+
+                      {/* Items */}
+                      <div className="space-y-3">
+                        {group.items.map((sale, idx) => {
+                          if (!isMultiItem || isExpanded || idx === 0) {
+                            return (
+                              <div key={sale.id} className={`border-l-4 pl-4 ${sale.status === 'active' ? 'border-green-500' : 'border-gray-400'} ${isMultiItem && idx > 0 ? 'pt-4 mt-4 border-t border-gray-200 dark:border-gray-700' : ''}`}>
+                                {isMultiItem && (
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h4 className="text-lg font-semibold text-gray-800 dark:text-white">{sale.item_name}</h4>
+                                    <span className={`px-2 py-1 text-xs rounded-full ${sale.status === 'active' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'}`}>
+                                      {sale.status === 'active' ? t('sales.active') : t('sales.returned')}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                                  <div>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.quantitySold')}:</span>
+                                    <div className="text-lg font-semibold dark:text-white">{sale.quantity_sold}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('item.pricePerUnit')}:</span>
+                                    <div className="text-lg font-semibold dark:text-white">{Number(sale.sale_price).toFixed(2)} {sale.currency}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.total')}:</span>
+                                    <div className="text-lg font-bold text-green-600 dark:text-green-400">{Number(sale.total_amount).toFixed(2)} {sale.currency}</div>
+                                  </div>
+                                  {sale.returned_at && (
+                                    <div>
+                                      <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.returnedAt')}:</span>
+                                      <div className="text-sm text-gray-700 dark:text-gray-300">{new Date(sale.returned_at).toLocaleString()}</div>
+                                    </div>
+                                  )}
+                                </div>
+                                {sale.notes && (
+                                  <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-sm">
+                                    <span className="text-gray-500 dark:text-gray-400">{t('sales.note')}: </span>
+                                    <span className="dark:text-white">{sale.notes}</span>
+                                  </div>
+                                )}
+                                {sale.status === 'active' && (
+                                  <div className="flex gap-2 flex-wrap">
+                                    <button onClick={() => handleEditSale(sale)} className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">✎ {t('sales.editSale')}</button>
+                                    <button onClick={() => handleOpenReturnModal(sale)} className="px-3 py-1.5 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-sm font-medium">↩ {t('sales.returnSale')}</button>
+                                    <button onClick={() => handleDeleteSale(sale.id)} className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium">🗑️</button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })}
+                        {isMultiItem && !isExpanded && group.items.length > 1 && (
+                          <button onClick={() => toggleGroupExpanded(group.group_id)} className="w-full mt-2 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">
+                            ▼ {t(group.items.length - 1 === 1 ? 'sales.showMoreItems' : 'sales.showMoreItems_plural', { count: group.items.length - 1 })}
+                          </button>
                         )}
                       </div>
-
-                      {sale.notes && (
-                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                          <span className="text-base text-gray-500 dark:text-gray-400">{t('sales.notes')}:</span>
-                          <div className="text-base dark:text-white mt-1">{sale.notes}</div>
-                        </div>
-                      )}
-
-                      {sale.status === 'active' && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditSale(sale)}
-                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-                          >
-                            ✎ {t('sales.editSale')}
-                          </button>
-                          <button
-                            onClick={() => handleOpenReturnModal(sale)}
-                            className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-sm font-medium"
-                          >
-                            ↩ {t('sales.returnSale')}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSale(sale.id)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </>

@@ -38,6 +38,7 @@ app.use('/api/sales', saleRoutes);
 
 // 404 handler
 app.use((req, res) => {
+  console.log(`404 - ${req.method} ${req.url}`);
   res.status(404).json({ error: 'Route not found' });
 });
 

@@ -1,13 +1,13 @@
 # Item Tracker
 
-A web-based inventory tracking system that allows users to manage stock levels, track price information, view historical data, and monitor total inventory value.
+A full-stack web-based inventory tracking system with sales management that allows users to manage stock levels, track price information, create sales (single and multi-item), view historical snapshots, and monitor total inventory value.
 
 ## Project Structure
 
 ```
 ├── backend/          # Node.js + Express + TypeScript backend
 ├── frontend/         # React + TypeScript + Vite frontend
-└── PROJECT_PLAN.md   # Detailed development plan
+└── docs/            # Documentation (see Deployment section below)
 ```
 
 ## Tech Stack
@@ -99,29 +99,44 @@ npm run dev
 
 The frontend will run on `http://localhost:3000` (or the port Vite assigns)
 
-## Development Progress
+## Current Status
 
-### Phase 1: Project Setup & Infrastructure ✅
-- [x] Project structure created
-- [x] Backend initialized with Express + TypeScript
-- [x] Frontend initialized with React + Vite + TypeScript
-- [x] Tailwind CSS configured
-- [x] Database schema designed
-- [x] ESLint and Prettier configured
+### ✅ Completed Features
+- **Authentication System**
+  - User registration with email verification
+  - Login system (email/password)
+  - Google OAuth 2.0 integration
+  - Password reset functionality
+  - JWT-based authentication
 
-### Phase 2: Authentication System (In Progress)
-- [ ] User registration
-- [ ] Email verification
-- [ ] Login system
-- [ ] Google OAuth
-- [ ] Password reset
+- **Item Management**
+  - Add, edit, delete items
+  - Quantity tracking with +/- buttons
+  - Multi-currency support (GEL and USD)
+  - Image upload for items (AWS S3)
+  - Price calculations (per item and total)
+  - Search, filtering, and sorting
+  - Pagination
 
-### Upcoming Phases
-- Phase 3: User Profile Management
-- Phase 4: Item Management
-- Phase 5: History Tracking
-- Phase 6: Testing & Bug Fixes
-- Phase 7: AWS Deployment
+- **Sales Management**
+  - Single-item sales
+  - Multi-item sales (multiple items in one transaction)
+  - Buyer information tracking
+  - Sale history with grouped display
+  - Edit, return, and delete individual sales
+  - Mixed currency support in multi-item sales
+
+- **Historical Tracking**
+  - Daily automated snapshots (1:00 AM Asia/Tbilisi timezone)
+  - Item quantity history for 1 year
+  - Date-based quantity lookup
+  - Automated snapshot cleanup
+
+- **User Profile**
+  - Profile viewing and editing
+  - Email change with re-verification
+  - Password change
+  - Account deletion
 
 ## Available Scripts
 
@@ -136,18 +151,53 @@ The frontend will run on `http://localhost:3000` (or the port Vite assigns)
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 
-## Features
+## Database Setup
 
-- User authentication (email/password + Google OAuth)
-- Email verification
-- Item management (add, edit, delete)
-- Quantity tracking with +/- buttons
-- Multi-currency support (GEL and USD)
-- Image upload for items
-- Price calculations (per item and total)
-- Historical quantity tracking (1 year)
-- Search and filtering
-- Pagination
+The application uses MySQL. Create the database and tables using the migration scripts:
+
+```bash
+cd backend
+node create-users-table.js
+node create-items-table.js
+node create-history-tables.js
+node create-sales-table.js
+node create-sale-groups-table.js
+```
+
+If you have existing sales, run the migration:
+```bash
+node migrate-existing-sales.js
+```
+
+## AWS Deployment
+
+The application is designed to run on AWS with the following services:
+- **EC2**: Host the backend and frontend
+- **RDS/MySQL on EC2**: Database
+- **S3**: Image storage
+- **SES**: Email service (verification, password reset)
+
+### Deployment Guides
+Comprehensive deployment documentation is available:
+- **Full AWS Deployment Guide** - Step-by-step instructions for deploying on AWS Free Tier
+- **Snapshot Scheduler Deployment** - Guide for deploying the daily snapshot feature
+- Both guides are available in the project documentation files
+
+### Key Features for Production
+- Automated daily snapshots at 1:00 AM (configurable timezone)
+- PM2 process management
+- Nginx reverse proxy
+- SSL/HTTPS support with Let's Encrypt
+- Database backups
+- Monitoring with CloudWatch
+
+## Internationalization
+
+The application supports multiple languages:
+- English (en)
+- Georgian (ka)
+
+Translation files are located in `frontend/src/locales/`
 
 ## License
 

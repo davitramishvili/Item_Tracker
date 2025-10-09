@@ -31,10 +31,12 @@
     "decrease": "შემცირება",
     "increase": "გაზრდა",
     "deleteConfirm": "დარწმუნებული ხართ, რომ გსურთ ამ ნივთის წაშლა?",
+    "deleteZeroStockConfirm": "რაოდენობა ახლა 0-ია. გსურთ ამ ნივთის წაშლა?",
     "moveToInStock": "გადატანა მარაგში",
     "moveToOnTheWay": "გადატანა გზაში",
     "moved": "ნივთი წარმატებით გადატანილია",
-    "merged": "ნივთი შეერთდა არსებულ ნივთთან"
+    "merged": "ნივთი შეერთდა არსებულ ნივთთან",
+    "deletedZeroStock": "ნივთი წაიშალა (მარაგი მიაღწია 0-ს)"
   },
   "form": {
     "name": "სახელი",
@@ -54,6 +56,7 @@
   },
   "status": {
     "choose": "აირჩიეთ სტატუსი...",
+    "chooseItem": "აირჩიეთ ნივთი...",
     "inStock": "მარაგშია",
     "onTheWay": "გზაშია",
     "needToOrder": "საჭიროა შეკვეთა"
@@ -113,7 +116,25 @@
     "deleteConfirm": "დარწმუნებული ხართ, რომ გსურთ ამ გაყიდვის წაშლა?",
     "optionalField": "(არასავალდებულო)",
     "active": "აქტიური",
-    "returned": "დაბრუნებული"
+    "returned": "დაბრუნებული",
+    "multiItemSale": "მრავალნივთიანი გაყიდვა",
+    "saleWithItems": "გაყიდვა ({{count}} ნივთი)",
+    "activeReturned": "{{active}} აქტიური, {{returned}} დაბრუნებული",
+    "total": "ჯამი",
+    "returnedAt": "დაბრუნებული",
+    "note": "შენიშვნა",
+    "showMoreItems": "აჩვენე კიდევ {{count}} ნივთი",
+    "showMoreItems_plural": "აჩვენე კიდევ {{count}} ნივთი",
+    "additionalItems": "დამატებითი ნივთები",
+    "addItem": "ნივთის დამატება",
+    "itemNumber": "ნივთი #{{number}}",
+    "item": "ნივთი",
+    "stock": "მარაგი",
+    "quantity": "რაოდენობა",
+    "price": "ფასი",
+    "grandTotal": "სრული ჯამი",
+    "optionalNote": "არასავალდებულო შენიშვნა ამ ნივთისთვის",
+    "typeOrSelect": "აკრიფეთ ან აირჩიეთ არსებული სახელებიდან"
   },
   "auth": {
     "login": "შესვლა",
