@@ -99,17 +99,19 @@ async function fixCascadeDelete() {
 
     const [salesFK] = await connection.query(`
       SELECT
-        CONSTRAINT_NAME,
-        TABLE_NAME,
-        COLUMN_NAME,
-        REFERENCED_TABLE_NAME,
-        REFERENCED_COLUMN_NAME,
-        DELETE_RULE
-      FROM information_schema.KEY_COLUMN_USAGE
-      JOIN information_schema.REFERENTIAL_CONSTRAINTS USING (CONSTRAINT_NAME, CONSTRAINT_SCHEMA)
-      WHERE TABLE_SCHEMA = ?
-        AND REFERENCED_TABLE_NAME = 'items'
-      ORDER BY TABLE_NAME, CONSTRAINT_NAME
+        kcu.CONSTRAINT_NAME,
+        kcu.TABLE_NAME,
+        kcu.COLUMN_NAME,
+        kcu.REFERENCED_TABLE_NAME,
+        kcu.REFERENCED_COLUMN_NAME,
+        rc.DELETE_RULE
+      FROM information_schema.KEY_COLUMN_USAGE kcu
+      JOIN information_schema.REFERENTIAL_CONSTRAINTS rc
+        ON kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
+        AND kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA
+      WHERE kcu.TABLE_SCHEMA = ?
+        AND kcu.REFERENCED_TABLE_NAME = 'items'
+      ORDER BY kcu.TABLE_NAME, kcu.CONSTRAINT_NAME
     `, [process.env.DB_NAME]);
 
     console.table(salesFK);
