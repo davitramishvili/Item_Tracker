@@ -66,6 +66,12 @@ const Dashboard = () => {
     maxPrice: '',
   });
 
+  // Move quantity modal state
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [movingItem, setMovingItem] = useState<Item | null>(null);
+  const [targetStatus, setTargetStatus] = useState<string>('');
+  const [moveQuantity, setMoveQuantity] = useState(1);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -339,33 +345,85 @@ const Dashboard = () => {
     }
   };
 
-  const handleMoveItem = async (item: Item, targetStatus: string) => {
+  const handleOpenMoveModal = (item: Item, targetStatus: string) => {
+    setMovingItem(item);
+    setTargetStatus(targetStatus);
+    setMoveQuantity(item.quantity); // Default to moving all
+    setShowMoveModal(true);
+  };
+
+  const handleConfirmMove = async () => {
+    if (!movingItem || !targetStatus) return;
+
+    setSubmitting(true);
     try {
       // Check if an item with the same name exists in the target status
       const existingItem = items.find(
-        i => i.name === item.name && i.category === targetStatus && i.id !== item.id
+        i => i.name === movingItem.name && i.category === targetStatus && i.id !== movingItem.id
       );
 
-      if (existingItem) {
-        // Merge: Add quantity to existing item and delete current item
-        const newQuantity = existingItem.quantity + item.quantity;
-        await itemService.update(existingItem.id, { quantity: newQuantity });
-        await itemService.delete(item.id);
+      if (moveQuantity === movingItem.quantity) {
+        // Moving all items - same as before
+        if (existingItem) {
+          // Merge: Add quantity to existing item and delete current item
+          const newQuantity = existingItem.quantity + moveQuantity;
+          await itemService.update(existingItem.id, { quantity: newQuantity });
+          await itemService.delete(movingItem.id);
 
-        setItems(items.filter(i => i.id !== item.id).map(i =>
-          i.id === existingItem.id ? { ...i, quantity: newQuantity } : i
-        ));
-        setSnapshotMessage(t('item.merged'));
+          setItems(items.filter(i => i.id !== movingItem.id).map(i =>
+            i.id === existingItem.id ? { ...i, quantity: newQuantity } : i
+          ));
+          setSnapshotMessage(t('item.merged'));
+        } else {
+          // Move: Update category to target status
+          const updatedItem = await itemService.update(movingItem.id, { category: targetStatus });
+          setItems(items.map(i => i.id === movingItem.id ? updatedItem : i));
+          setSnapshotMessage(t('item.moved'));
+        }
       } else {
-        // Move: Update category to target status
-        const updatedItem = await itemService.update(item.id, { category: targetStatus });
-        setItems(items.map(i => i.id === item.id ? updatedItem : i));
-        setSnapshotMessage(t('item.moved'));
+        // Moving partial quantity - need to split
+        const remainingQuantity = movingItem.quantity - moveQuantity;
+
+        if (existingItem) {
+          // Merge partial quantity with existing item
+          const newQuantity = existingItem.quantity + moveQuantity;
+          await itemService.update(existingItem.id, { quantity: newQuantity });
+          // Update the current item with remaining quantity
+          const updatedItem = await itemService.update(movingItem.id, { quantity: remainingQuantity });
+
+          setItems(items.map(i => {
+            if (i.id === existingItem.id) return { ...i, quantity: newQuantity };
+            if (i.id === movingItem.id) return updatedItem;
+            return i;
+          }));
+          setSnapshotMessage(t('item.partialMoved'));
+        } else {
+          // Create a new item in the target status with the moved quantity
+          const newItem = await itemService.create({
+            name: movingItem.name,
+            description: movingItem.description,
+            quantity: moveQuantity,
+            price_per_unit: movingItem.price_per_unit,
+            currency: movingItem.currency,
+            category: targetStatus,
+          });
+
+          // Update the current item with remaining quantity
+          const updatedItem = await itemService.update(movingItem.id, { quantity: remainingQuantity });
+
+          setItems([...items.map(i => i.id === movingItem.id ? updatedItem : i), newItem]);
+          setSnapshotMessage(t('item.partialMoved'));
+        }
       }
 
       setTimeout(() => setSnapshotMessage(''), 3000);
+      setShowMoveModal(false);
+      setMovingItem(null);
+      setTargetStatus('');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to move item');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -757,7 +815,7 @@ const Dashboard = () => {
                       {/* Move/Transfer Button */}
                       {item.category === 'need_to_order' && (
                         <button
-                          onClick={() => handleMoveItem(item, 'on_the_way')}
+                          onClick={() => handleOpenMoveModal(item, 'on_the_way')}
                           className="w-full mt-3 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-sm font-medium"
                         >
                           → {t('item.moveToOnTheWay')}
@@ -765,7 +823,7 @@ const Dashboard = () => {
                       )}
                       {item.category === 'on_the_way' && (
                         <button
-                          onClick={() => handleMoveItem(item, 'in_stock')}
+                          onClick={() => handleOpenMoveModal(item, 'in_stock')}
                           className="w-full mt-3 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
                         >
                           → {t('item.moveToInStock')}
@@ -853,7 +911,7 @@ const Dashboard = () => {
                             )}
                             {item.category === 'need_to_order' && (
                               <button
-                                onClick={() => handleMoveItem(item, 'on_the_way')}
+                                onClick={() => handleOpenMoveModal(item, 'on_the_way')}
                                 className="px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-xs"
                                 title={t('item.moveToOnTheWay')}
                               >
@@ -862,7 +920,7 @@ const Dashboard = () => {
                             )}
                             {item.category === 'on_the_way' && (
                               <button
-                                onClick={() => handleMoveItem(item, 'in_stock')}
+                                onClick={() => handleOpenMoveModal(item, 'in_stock')}
                                 className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs"
                                 title={t('item.moveToInStock')}
                               >
@@ -1434,6 +1492,85 @@ const Dashboard = () => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Move Quantity Modal */}
+      {showMoveModal && movingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <h3 className="text-xl font-bold mb-4 dark:text-white">
+              {targetStatus === 'on_the_way' ? t('item.moveToOnTheWay') : t('item.moveToInStock')}
+            </h3>
+
+            <div className="space-y-4">
+              {/* Item Info */}
+              <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 dark:border-blue-500 p-3">
+                <p className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-1">{movingItem.name}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Available: {movingItem.quantity} {movingItem.quantity === 1 ? 'item' : 'items'}
+                </p>
+              </div>
+
+              {/* Quantity to Move */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Quantity to move {t('form.required')}
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={movingItem.quantity}
+                  required
+                  value={moveQuantity}
+                  onChange={(e) => setMoveQuantity(parseInt(e.target.value) || 1)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {moveQuantity === movingItem.quantity
+                    ? 'Moving all items'
+                    : `${movingItem.quantity - moveQuantity} ${movingItem.quantity - moveQuantity === 1 ? 'item' : 'items'} will remain in current status`}
+                </p>
+              </div>
+
+              {/* Quick Select Buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMoveQuantity(Math.ceil(movingItem.quantity / 2))}
+                  className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
+                >
+                  Half ({Math.ceil(movingItem.quantity / 2)})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMoveQuantity(movingItem.quantity)}
+                  className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
+                >
+                  All ({movingItem.quantity})
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setShowMoveModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                {t('form.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmMove}
+                disabled={submitting || moveQuantity < 1 || moveQuantity > movingItem.quantity}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {submitting ? 'Moving...' : 'Confirm Move'}
+              </button>
+            </div>
           </div>
         </div>
       )}
