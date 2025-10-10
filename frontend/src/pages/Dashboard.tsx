@@ -1509,14 +1509,14 @@ const Dashboard = () => {
               <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 dark:border-blue-500 p-3">
                 <p className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-1">{movingItem.name}</p>
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Available: {movingItem.quantity} {movingItem.quantity === 1 ? 'item' : 'items'}
+                  {t('item.available')}: {movingItem.quantity} {t('item.item', { count: movingItem.quantity })}
                 </p>
               </div>
 
               {/* Quantity to Move */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Quantity to move {t('form.required')}
+                  {t('item.quantityToMove')} {t('form.required')}
                 </label>
                 <input
                   type="number"
@@ -1529,8 +1529,8 @@ const Dashboard = () => {
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {moveQuantity === movingItem.quantity
-                    ? 'Moving all items'
-                    : `${movingItem.quantity - moveQuantity} ${movingItem.quantity - moveQuantity === 1 ? 'item' : 'items'} will remain in current status`}
+                    ? t('item.movingAllItems')
+                    : t('item.itemsWillRemain', { count: movingItem.quantity - moveQuantity })}
                 </p>
               </div>
 
@@ -1541,14 +1541,14 @@ const Dashboard = () => {
                   onClick={() => setMoveQuantity(Math.ceil(movingItem.quantity / 2))}
                   className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
                 >
-                  Half ({Math.ceil(movingItem.quantity / 2)})
+                  {t('item.half')} ({Math.ceil(movingItem.quantity / 2)})
                 </button>
                 <button
                   type="button"
                   onClick={() => setMoveQuantity(movingItem.quantity)}
                   className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm"
                 >
-                  All ({movingItem.quantity})
+                  {t('item.all')} ({movingItem.quantity})
                 </button>
               </div>
             </div>
@@ -1568,7 +1568,7 @@ const Dashboard = () => {
                 disabled={submitting || moveQuantity < 1 || moveQuantity > movingItem.quantity}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {submitting ? 'Moving...' : 'Confirm Move'}
+                {submitting ? t('item.moving') : t('item.confirmMove')}
               </button>
             </div>
           </div>

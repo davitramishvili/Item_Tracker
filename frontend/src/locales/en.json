@@ -36,7 +36,19 @@
     "moveToOnTheWay": "Move to On Its Way",
     "moved": "Item moved successfully",
     "merged": "Item merged with existing item",
-    "deletedZeroStock": "Item deleted (stock reached 0)"
+    "partialMoved": "Items moved successfully",
+    "deletedZeroStock": "Item deleted (stock reached 0)",
+    "quantityToMove": "Quantity to move",
+    "available": "Available",
+    "item_one": "item",
+    "item_other": "items",
+    "movingAllItems": "Moving all items",
+    "itemsWillRemain": "{{count}} item will remain in current status",
+    "itemsWillRemain_plural": "{{count}} items will remain in current status",
+    "half": "Half",
+    "all": "All",
+    "confirmMove": "Confirm Move",
+    "moving": "Moving..."
   },
   "form": {
     "name": "Name",
