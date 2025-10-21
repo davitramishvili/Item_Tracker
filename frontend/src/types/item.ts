@@ -6,6 +6,8 @@ export interface Item {
   quantity: number;
   price_per_unit?: number;
   currency?: 'GEL' | 'USD';
+  purchase_price?: number;
+  purchase_currency?: 'GEL' | 'USD';
   category?: string;
   created_at: string;
   updated_at: string;
@@ -17,7 +19,10 @@ export interface CreateItemData {
   quantity?: number;
   price_per_unit?: number;
   currency?: 'GEL' | 'USD';
+  purchase_price?: number;
+  purchase_currency?: 'GEL' | 'USD';
   category?: string;
+  skipDuplicateCheck?: boolean;
 }
 
 export interface UpdateItemData {
@@ -26,6 +31,8 @@ export interface UpdateItemData {
   quantity?: number;
   price_per_unit?: number;
   currency?: 'GEL' | 'USD';
+  purchase_price?: number;
+  purchase_currency?: 'GEL' | 'USD';
   category?: string;
 }
 

@@ -33,6 +33,8 @@ const Dashboard = () => {
     quantity: 1,
     price_per_unit: 0,
     currency: 'USD',
+    purchase_price: 0,
+    purchase_currency: 'USD',
     category: '',
   });
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +73,11 @@ const Dashboard = () => {
   const [movingItem, setMovingItem] = useState<Item | null>(null);
   const [targetStatus, setTargetStatus] = useState<string>('');
   const [moveQuantity, setMoveQuantity] = useState(1);
+
+  // Duplicate confirmation modal state
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateItem, setDuplicateItem] = useState<Item | null>(null);
+  const [pendingItemData, setPendingItemData] = useState<CreateItemData | null>(null);
 
   const handleLogout = () => {
     logout();
@@ -120,10 +127,83 @@ const Dashboard = () => {
         quantity: 1,
         price_per_unit: 0,
         currency: 'USD',
+        purchase_price: 0,
+        purchase_currency: 'USD',
+        category: '',
+      });
+      await loadItems(); // Refresh items list
+    } catch (err: any) {
+      // Check if it's a duplicate item error (status 409)
+      if (err.response?.status === 409 && err.response?.data?.duplicate) {
+        setDuplicateItem(err.response.data.duplicate);
+        setPendingItemData(formData);
+        setShowDuplicateModal(true);
+        setShowAddModal(false);
+      } else {
+        setError(err.response?.data?.error || 'Failed to add item');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleMergeDuplicate = async () => {
+    if (!duplicateItem || !pendingItemData) return;
+
+    setSubmitting(true);
+    try {
+      // Update the existing item's quantity
+      const newQuantity = duplicateItem.quantity + (pendingItemData.quantity || 1);
+      await itemService.update(duplicateItem.id, { quantity: newQuantity });
+
+      await loadItems(); // Refresh items list
+      setShowDuplicateModal(false);
+      setDuplicateItem(null);
+      setPendingItemData(null);
+      setFormData({
+        name: '',
+        description: '',
+        quantity: 1,
+        price_per_unit: 0,
+        currency: 'USD',
+        purchase_price: 0,
+        purchase_currency: 'USD',
+        category: '',
+      });
+      setSnapshotMessage(t('item.merged'));
+      setTimeout(() => setSnapshotMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to merge items');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateSeparate = async () => {
+    if (!pendingItemData) return;
+
+    setSubmitting(true);
+    try {
+      // Create item with skipDuplicateCheck flag
+      const itemDataWithSkip = { ...pendingItemData, skipDuplicateCheck: true };
+      await itemService.create(itemDataWithSkip);
+
+      await loadItems(); // Refresh items list
+      setShowDuplicateModal(false);
+      setDuplicateItem(null);
+      setPendingItemData(null);
+      setFormData({
+        name: '',
+        description: '',
+        quantity: 1,
+        price_per_unit: 0,
+        currency: 'USD',
+        purchase_price: 0,
+        purchase_currency: 'USD',
         category: '',
       });
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to add item');
+      setError(err.response?.data?.error || 'Failed to create item');
     } finally {
       setSubmitting(false);
     }
@@ -279,6 +359,8 @@ const Dashboard = () => {
       quantity: item.quantity,
       price_per_unit: item.price_per_unit || 0,
       currency: item.currency || 'USD',
+      purchase_price: item.purchase_price || 0,
+      purchase_currency: item.purchase_currency || item.currency || 'USD',
       category: item.category || '',
     });
     setShowEditModal(true);
@@ -296,6 +378,8 @@ const Dashboard = () => {
         quantity: formData.quantity,
         price_per_unit: formData.price_per_unit,
         currency: formData.currency,
+        purchase_price: formData.purchase_price,
+        purchase_currency: formData.purchase_currency,
         category: formData.category,
       };
       const updatedItem = await itemService.update(editingItem.id, updateData);
@@ -308,6 +392,8 @@ const Dashboard = () => {
         quantity: 1,
         price_per_unit: 0,
         currency: 'USD',
+        purchase_price: 0,
+        purchase_currency: 'USD',
         category: '',
       });
     } catch (err: any) {
@@ -585,11 +671,23 @@ const Dashboard = () => {
 
           {/* Category Totals Section */}
           {!loading && filteredItems.length > 0 && (() => {
-            // Calculate totals by category and currency
-            const categoryTotals = filteredItems.reduce((acc, item) => {
+            // Calculate selling and purchase totals by category and currency
+            const categorySellingTotals = filteredItems.reduce((acc, item) => {
               const category = item.category || 'in_stock';
               const total = item.quantity * (item.price_per_unit || 0);
               const currency = item.currency || 'USD';
+
+              if (!acc[category]) {
+                acc[category] = {};
+              }
+              acc[category][currency] = (acc[category][currency] || 0) + total;
+              return acc;
+            }, {} as Record<string, Record<string, number>>);
+
+            const categoryPurchaseTotals = filteredItems.reduce((acc, item) => {
+              const category = item.category || 'in_stock';
+              const total = item.quantity * (item.purchase_price || 0);
+              const currency = item.purchase_currency || 'USD';
 
               if (!acc[category]) {
                 acc[category] = {};
@@ -617,8 +715,9 @@ const Dashboard = () => {
             return (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {STATUS_OPTIONS.map((statusOption) => {
-                  const totals = categoryTotals[statusOption.value];
-                  if (!totals) return null;
+                  const sellingTotals = categorySellingTotals[statusOption.value];
+                  const purchaseTotals = categoryPurchaseTotals[statusOption.value];
+                  if (!sellingTotals && !purchaseTotals) return null;
 
                   return (
                     <div
@@ -626,16 +725,40 @@ const Dashboard = () => {
                       className={`bg-gradient-to-r ${getCategoryColor(statusOption.value)} text-white rounded-lg shadow-lg p-6`}
                     >
                       <h3 className="text-lg font-semibold mb-3">{getCategoryLabel(statusOption.value)}</h3>
-                      <div className="space-y-2">
-                        {Object.entries(totals).map(([currency, total]) => (
-                          <div key={currency} className="bg-white/20 dark:bg-white/10 rounded-lg px-4 py-2">
-                            <div className="text-sm opacity-90">{currency}</div>
-                            <div className="text-2xl font-bold">
-                              {getCategoryPrefix(statusOption.value)}{total.toFixed(2)}
-                            </div>
+
+                      {/* Selling Totals */}
+                      {sellingTotals && Object.keys(sellingTotals).some(c => sellingTotals[c] > 0) && (
+                        <div className="mb-4">
+                          <div className="text-xs opacity-75 mb-2">{t('item.sellingTotal')}</div>
+                          <div className="space-y-2">
+                            {Object.entries(sellingTotals).map(([currency, total]) => total > 0 && (
+                              <div key={`selling-${currency}`} className="bg-white/20 dark:bg-white/10 rounded-lg px-4 py-2">
+                                <div className="text-sm opacity-90">{currency}</div>
+                                <div className="text-2xl font-bold">
+                                  {getCategoryPrefix(statusOption.value)}{total.toFixed(2)}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
+
+                      {/* Purchase Totals */}
+                      {purchaseTotals && Object.keys(purchaseTotals).some(c => purchaseTotals[c] > 0) && (
+                        <div>
+                          <div className="text-xs opacity-75 mb-2">{t('item.purchaseTotal')}</div>
+                          <div className="space-y-2">
+                            {Object.entries(purchaseTotals).map(([currency, total]) => total > 0 && (
+                              <div key={`purchase-${currency}`} className="bg-white/20 dark:bg-white/10 rounded-lg px-4 py-2">
+                                <div className="text-sm opacity-90">{currency}</div>
+                                <div className="text-xl font-semibold opacity-90">
+                                  {getCategoryPrefix(statusOption.value)}{total.toFixed(2)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -784,7 +907,7 @@ const Dashboard = () => {
                         </div>
                       </div>
 
-                      {/* Price Per Unit */}
+                      {/* Selling Price Per Unit */}
                       {item.price_per_unit !== undefined && item.price_per_unit !== null && item.price_per_unit > 0 && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500 dark:text-gray-400">{t('item.pricePerUnit')}:</span>
@@ -792,12 +915,30 @@ const Dashboard = () => {
                         </div>
                       )}
 
-                      {/* Total Price */}
+                      {/* Selling Total */}
                       {item.price_per_unit !== undefined && item.price_per_unit !== null && item.price_per_unit > 0 && (
-                        <div className="flex justify-between pt-3 border-t border-gray-200 dark:border-gray-600">
-                          <span className="text-gray-700 dark:text-gray-300 font-semibold">{t('item.total')}:</span>
-                          <span className="font-bold text-lg text-green-600 dark:text-green-400">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500 dark:text-gray-400">{t('item.sellingTotal')}:</span>
+                          <span className="font-medium text-green-600 dark:text-green-400">
                             {Number(itemTotal).toFixed(2)} {item.currency}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Purchase Price Per Unit */}
+                      {item.purchase_price !== undefined && item.purchase_price !== null && item.purchase_price > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500 dark:text-gray-400">{t('item.purchasePrice')}:</span>
+                          <span className="font-medium dark:text-gray-200">{Number(item.purchase_price).toFixed(2)} {item.purchase_currency}</span>
+                        </div>
+                      )}
+
+                      {/* Purchase Total */}
+                      {item.purchase_price !== undefined && item.purchase_price !== null && item.purchase_price > 0 && (
+                        <div className="flex justify-between text-sm border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+                          <span className="text-gray-500 dark:text-gray-400">{t('item.purchaseTotal')}:</span>
+                          <span className="font-medium text-orange-600 dark:text-orange-400">
+                            {Number(item.quantity * item.purchase_price).toFixed(2)} {item.purchase_currency}
                           </span>
                         </div>
                       )}
@@ -846,7 +987,8 @@ const Dashboard = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('form.status')}</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.quantity')}</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.pricePerUnit')}</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.total')}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.purchasePrice')}</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('item.sellingTotal')}</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('profile.actions')}</th>
                   </tr>
                 </thead>
@@ -891,6 +1033,11 @@ const Dashboard = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">
                           {item.price_per_unit !== undefined && item.price_per_unit !== null && item.price_per_unit > 0
                             ? `${Number(item.price_per_unit).toFixed(2)} ${item.currency}`
+                            : '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">
+                          {item.purchase_price !== undefined && item.purchase_price !== null && item.purchase_price > 0
+                            ? `${Number(item.purchase_price).toFixed(2)} ${item.purchase_currency}`
                             : '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600 dark:text-green-400 text-right">
@@ -1022,11 +1169,39 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('form.currency')}
+                    {t('form.sellingCurrency')}
                   </label>
                   <select
                     value={formData.currency}
                     onChange={(e) => setFormData({ ...formData, currency: e.target.value as 'GEL' | 'USD' })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="GEL">GEL</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('form.purchasePrice')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.purchase_price || ''}
+                    onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value ? parseFloat(e.target.value) : 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('form.purchaseCurrency')}
+                  </label>
+                  <select
+                    value={formData.purchase_currency}
+                    onChange={(e) => setFormData({ ...formData, purchase_currency: e.target.value as 'GEL' | 'USD' })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="USD">USD</option>
@@ -1144,11 +1319,39 @@ const Dashboard = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('form.currency')}
+                    {t('form.sellingCurrency')}
                   </label>
                   <select
                     value={formData.currency}
                     onChange={(e) => setFormData({ ...formData, currency: e.target.value as 'GEL' | 'USD' })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="GEL">GEL</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('form.purchasePrice')}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.purchase_price || ''}
+                    onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value ? parseFloat(e.target.value) : 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('form.purchaseCurrency')}
+                  </label>
+                  <select
+                    value={formData.purchase_currency}
+                    onChange={(e) => setFormData({ ...formData, purchase_currency: e.target.value as 'GEL' | 'USD' })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="USD">USD</option>
@@ -1569,6 +1772,75 @@ const Dashboard = () => {
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
                 {submitting ? t('item.moving') : t('item.confirmMove')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate Confirmation Modal */}
+      {showDuplicateModal && duplicateItem && pendingItemData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <h3 className="text-xl font-bold mb-4 text-yellow-600 dark:text-yellow-400">
+              ⚠️ {t('item.duplicateFound')}
+            </h3>
+
+            <p className="text-gray-700 dark:text-gray-300 mb-6">
+              {t('item.duplicateMessage', {
+                name: pendingItemData.name,
+                status: t(`status.${duplicateItem.category === 'in_stock' ? 'inStock' : duplicateItem.category === 'on_the_way' ? 'onTheWay' : 'needToOrder'}`)
+              })}
+            </p>
+
+            <div className="space-y-4 mb-6">
+              {/* Merge Option */}
+              <div className="p-4 border-2 border-blue-500 dark:border-blue-400 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                <div className="font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                  {t('item.mergeItems')}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {t('item.mergeDescription', {
+                    quantity: pendingItemData.quantity || 1,
+                    total: duplicateItem.quantity + (pendingItemData.quantity || 1)
+                  })}
+                </div>
+              </div>
+
+              {/* Create Separate Option */}
+              <div className="p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg">
+                <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  {t('item.createSeparate')}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {t('item.createDescription')}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowDuplicateModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                {t('form.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateSeparate}
+                disabled={submitting}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                {t('item.createSeparate')}
+              </button>
+              <button
+                type="button"
+                onClick={handleMergeDuplicate}
+                disabled={submitting}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {t('item.mergeItems')}
               </button>
             </div>
           </div>

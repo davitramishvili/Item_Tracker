@@ -38,12 +38,30 @@ export const getItem = async (req: Request, res: Response): Promise<void> => {
 export const createItem = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const { name, description, quantity, category, price_per_unit, currency } = req.body;
+    const { name, description, quantity, category, price_per_unit, currency, purchase_price, purchase_currency, skipDuplicateCheck } = req.body;
 
     // Validation
     if (!name || name.trim() === '') {
       res.status(400).json({ error: 'Item name is required' });
       return;
+    }
+
+    // Check for duplicate item (same name and category) unless skipDuplicateCheck is true
+    if (!skipDuplicateCheck && category) {
+      const existingItems = await ItemModel.findByUserId(userId);
+      const duplicate = existingItems.find(
+        item => item.name === name.trim() && item.category === category.trim()
+      );
+
+      if (duplicate) {
+        // Return duplicate found response - frontend will handle the confirmation
+        res.status(409).json({
+          error: 'Duplicate item found',
+          duplicate: duplicate,
+          message: 'An item with this name already exists in this status'
+        });
+        return;
+      }
     }
 
     const item = await ItemModel.create({
@@ -54,6 +72,8 @@ export const createItem = async (req: Request, res: Response): Promise<void> => 
       category: category?.trim(),
       price_per_unit: price_per_unit || 0,
       currency: currency || 'USD',
+      purchase_price: purchase_price || 0,
+      purchase_currency: purchase_currency || currency || 'USD',
     });
 
     // Add item name to item_names table for autocomplete

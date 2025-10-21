@@ -57,7 +57,7 @@ class UserModel {
   // Find user by ID
   async findById(id: number): Promise<User | null> {
     const [rows] = await promisePool.query<User[] & RowDataPacket[]>(
-      'SELECT * FROM users WHERE id = ?',
+      'SELECT *, email_verified as is_verified FROM users WHERE id = ?',
       [id]
     );
     return rows.length > 0 ? rows[0] : null;
@@ -66,7 +66,7 @@ class UserModel {
   // Find user by email
   async findByEmail(email: string): Promise<User | null> {
     const [rows] = await promisePool.query<User[] & RowDataPacket[]>(
-      'SELECT * FROM users WHERE email = ?',
+      'SELECT *, email_verified as is_verified FROM users WHERE email = ?',
       [email]
     );
     return rows.length > 0 ? rows[0] : null;
@@ -75,7 +75,7 @@ class UserModel {
   // Find user by username
   async findByUsername(username: string): Promise<User | null> {
     const [rows] = await promisePool.query<User[] & RowDataPacket[]>(
-      'SELECT * FROM users WHERE username = ?',
+      'SELECT *, email_verified as is_verified FROM users WHERE username = ?',
       [username]
     );
     return rows.length > 0 ? rows[0] : null;
@@ -84,7 +84,7 @@ class UserModel {
   // Find user by Google ID
   async findByGoogleId(googleId: string): Promise<User | null> {
     const [rows] = await promisePool.query<User[] & RowDataPacket[]>(
-      'SELECT * FROM users WHERE google_id = ?',
+      'SELECT *, email_verified as is_verified FROM users WHERE google_id = ?',
       [googleId]
     );
     return rows.length > 0 ? rows[0] : null;
@@ -93,7 +93,7 @@ class UserModel {
   // Find user by verification token
   async findByVerificationToken(token: string): Promise<User | null> {
     const [rows] = await promisePool.query<User[] & RowDataPacket[]>(
-      'SELECT * FROM users WHERE verification_token = ?',
+      'SELECT *, email_verified as is_verified FROM users WHERE verification_token = ?',
       [token]
     );
     return rows.length > 0 ? rows[0] : null;
@@ -102,7 +102,7 @@ class UserModel {
   // Find user by reset password token
   async findByResetToken(token: string): Promise<User | null> {
     const [rows] = await promisePool.query<User[] & RowDataPacket[]>(
-      'SELECT * FROM users WHERE reset_password_token = ? AND reset_password_expires > NOW()',
+      'SELECT *, email_verified as is_verified FROM users WHERE reset_password_token = ? AND reset_password_expires > NOW()',
       [token]
     );
     return rows.length > 0 ? rows[0] : null;
@@ -114,7 +114,9 @@ class UserModel {
     const values: any[] = [];
 
     Object.entries(userData).forEach(([key, value]) => {
-      fields.push(`${key} = ?`);
+      // Map is_verified to email_verified for database column name
+      const dbKey = key === 'is_verified' ? 'email_verified' : key;
+      fields.push(`${dbKey} = ?`);
       values.push(value);
     });
 
