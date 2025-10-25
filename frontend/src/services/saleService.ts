@@ -64,6 +64,25 @@ export interface UpdateSaleData {
   sale_date?: string;
 }
 
+export interface SaleStatistics {
+  totalItemsSold: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  byCurrency: {
+    currency: string;
+    itemsSold: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+  }[];
+}
+
+export interface SalesDateRangeResponse {
+  sales: SaleGroup[];
+  statistics: SaleStatistics;
+}
+
 const getAuthToken = () => {
   return localStorage.getItem('token');
 };
@@ -94,6 +113,15 @@ export const saleService = {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data.sales;
+  },
+
+  // Get sales by date range with statistics
+  getByDateRange: async (startDate: string, endDate: string): Promise<SalesDateRangeResponse> => {
+    const token = getAuthToken();
+    const response = await axios.get(`${API_URL}/sales/range?startDate=${startDate}&endDate=${endDate}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
   },
 
   // Update a sale
