@@ -169,6 +169,81 @@ export const getSalesByDate = async (req: Request, res: Response): Promise<void>
   }
 };
 
+// Get sales by date range (grouped) with statistics
+export const getSalesByDateRange = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.userId;
+    const { startDate, endDate } = req.query;
+
+    console.log('📅 getSalesByDateRange called - userId:', userId, 'startDate:', startDate, 'endDate:', endDate);
+
+    if (!startDate || typeof startDate !== 'string') {
+      res.status(400).json({ error: 'Start date is required' });
+      return;
+    }
+
+    if (!endDate || typeof endDate !== 'string') {
+      res.status(400).json({ error: 'End date is required' });
+      return;
+    }
+
+    // Validate date format (basic check)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+      res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+      return;
+    }
+
+    // Validate date range
+    if (new Date(startDate) > new Date(endDate)) {
+      res.status(400).json({ error: 'Start date must be before or equal to end date' });
+      return;
+    }
+
+    // Get grouped sales
+    const salesGroups = await SaleModel.findGroupedByDateRange(userId, startDate, endDate);
+    console.log('✅ Found', salesGroups.length, 'sale groups');
+
+    // Get statistics
+    const stats = await SaleModel.getStatsByDateRange(userId, startDate, endDate);
+    console.log('📊 Statistics:', stats);
+
+    // Process statistics to calculate totals
+    let totalItemsSold = 0;
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalProfit = 0;
+
+    // Aggregate across all currencies (convert or sum per currency)
+    for (const stat of stats) {
+      totalItemsSold += parseInt(stat.total_items_sold) || 0;
+      totalRevenue += parseFloat(stat.total_revenue) || 0;
+      totalCost += parseFloat(stat.total_cost) || 0;
+    }
+
+    totalProfit = totalRevenue - totalCost;
+
+    const statistics = {
+      totalItemsSold,
+      totalRevenue,
+      totalCost,
+      totalProfit,
+      byCurrency: stats.map((stat: any) => ({
+        currency: stat.currency,
+        itemsSold: parseInt(stat.total_items_sold) || 0,
+        revenue: parseFloat(stat.total_revenue) || 0,
+        cost: parseFloat(stat.total_cost) || 0,
+        profit: (parseFloat(stat.total_revenue) || 0) - (parseFloat(stat.total_cost) || 0)
+      }))
+    };
+
+    res.json({ sales: salesGroups, statistics });
+  } catch (error) {
+    console.error('Get sales by date range error:', error);
+    res.status(500).json({ error: 'Failed to fetch sales' });
+  }
+};
+
 // Update a sale
 export const updateSale = async (req: Request, res: Response): Promise<void> => {
   try {

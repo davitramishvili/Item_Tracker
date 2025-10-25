@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createSale, createMultiItemSale, getSalesByDate, updateSale, returnSale, deleteSale } from '../controllers/saleController';
+import { createSale, createMultiItemSale, getSalesByDate, getSalesByDateRange, updateSale, returnSale, deleteSale } from '../controllers/saleController';
 import { authenticate } from '../middlewares/auth';
 
 const router = Router();
@@ -12,6 +12,9 @@ router.post('/multi', createMultiItemSale);
 
 // Create a new sale
 router.post('/', createSale);
+
+// Get sales by date range (must come before '/')
+router.get('/range', getSalesByDateRange);
 
 // Get sales by date
 router.get('/', getSalesByDate);

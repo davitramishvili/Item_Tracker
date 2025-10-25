@@ -281,6 +281,65 @@ export class SaleModel {
     return Array.from(grouped.values());
   }
 
+  // Get sales grouped by sale_group_id for a date range
+  static async findGroupedByDateRange(userId: number, startDate: string, endDate: string): Promise<any[]> {
+    const [rows] = await promisePool.query<RowDataPacket[]>(
+      `SELECT
+        sg.id as group_id,
+        sg.buyer_name as group_buyer_name,
+        sg.buyer_phone as group_buyer_phone,
+        sg.notes as group_notes,
+        sg.sale_date,
+        sg.created_at as group_created_at,
+        s.*
+       FROM sale_groups sg
+       LEFT JOIN sales s ON sg.id = s.sale_group_id
+       WHERE sg.user_id = ? AND sg.sale_date BETWEEN ? AND ?
+       ORDER BY sg.created_at DESC, s.id ASC`,
+      [userId, startDate, endDate]
+    );
+
+    // Group the results by sale_group_id
+    const grouped = new Map();
+
+    for (const row of rows) {
+      const groupId = row.group_id;
+
+      if (!grouped.has(groupId)) {
+        grouped.set(groupId, {
+          group_id: groupId,
+          buyer_name: row.group_buyer_name,
+          buyer_phone: row.group_buyer_phone,
+          notes: row.group_notes,
+          sale_date: row.sale_date,
+          created_at: row.group_created_at,
+          items: []
+        });
+      }
+
+      if (row.id) { // Only add if there's an actual sale item
+        grouped.get(groupId).items.push({
+          id: row.id,
+          user_id: row.user_id,
+          sale_group_id: row.sale_group_id,
+          item_id: row.item_id,
+          item_name: row.item_name,
+          quantity_sold: row.quantity_sold,
+          sale_price: row.sale_price,
+          total_amount: row.total_amount,
+          currency: row.currency,
+          notes: row.notes,
+          status: row.status,
+          returned_at: row.returned_at,
+          created_at: row.created_at,
+          updated_at: row.updated_at
+        });
+      }
+    }
+
+    return Array.from(grouped.values());
+  }
+
   // Delete a sale
   static async delete(id: number, userId: number): Promise<boolean> {
     const [result] = await promisePool.query<ResultSetHeader>(
@@ -290,7 +349,7 @@ export class SaleModel {
     return result.affectedRows > 0;
   }
 
-  // Get sales statistics for a user
+  // Get sales statistics for a user with purchase price for profit calculation
   static async getStatsByDateRange(
     userId: number,
     startDate: string,
@@ -299,12 +358,14 @@ export class SaleModel {
     const [rows] = await promisePool.query<RowDataPacket[]>(
       `SELECT
         COUNT(*) as total_sales,
-        SUM(quantity_sold) as total_items_sold,
-        SUM(total_amount) as total_revenue,
-        currency
-       FROM sales
-       WHERE user_id = ? AND sale_date BETWEEN ? AND ? AND status = 'active'
-       GROUP BY currency`,
+        SUM(s.quantity_sold) as total_items_sold,
+        SUM(s.total_amount) as total_revenue,
+        SUM(s.quantity_sold * COALESCE(i.purchase_price, 0)) as total_cost,
+        s.currency
+       FROM sales s
+       LEFT JOIN items i ON s.item_id = i.id
+       WHERE s.user_id = ? AND s.sale_date BETWEEN ? AND ? AND s.status = 'active'
+       GROUP BY s.currency`,
       [userId, startDate, endDate]
     );
     return rows;
