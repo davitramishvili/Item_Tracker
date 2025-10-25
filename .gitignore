@@ -26,3 +26,10 @@ npm-debug.log*
 # Build outputs
 dist/
 build/
+
+# Project planning documents
+PROJECT_BREAKDOWN_GUIDE.md
+PROJECT_IMPLEMENTATION_PLAN.md
+
+# System files
+nul
