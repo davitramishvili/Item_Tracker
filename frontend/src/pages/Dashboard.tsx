@@ -577,6 +577,12 @@ const Dashboard = () => {
             <div className="flex items-center space-x-4">
               <h1 className="text-xl font-bold text-gray-800 dark:text-white">{t('nav.itemTracker')}</h1>
               <button
+                onClick={() => navigate('/sales')}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                {t('nav.sales')}
+              </button>
+              <button
                 onClick={() => navigate('/history')}
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               >

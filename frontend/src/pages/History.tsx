@@ -119,6 +119,12 @@ const History = () => {
                 {t('nav.dashboard')}
               </button>
               <button
+                onClick={() => navigate('/sales')}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                {t('nav.sales')}
+              </button>
+              <button
                 onClick={() => navigate('/profile')}
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               >
