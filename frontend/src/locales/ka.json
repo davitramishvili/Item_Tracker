@@ -2,6 +2,8 @@
   "nav": {
     "itemTracker": "ნივთების აღრიცხვა",
     "dashboard": "მთავარი",
+    "sales": "გაყიდვები",
+    "history": "ისტორია",
     "profile": "პროფილი",
     "welcome": "გამარჯობა, {{name}}!",
     "logout": "გასვლა",
@@ -110,6 +112,32 @@
     "deleteSnapshot": "სურათის წაშლა"
   },
   "sales": {
+    "title": "გაყიდვები",
+    "dateRange": "თარიღის დიაპაზონი",
+    "startDate": "საწყისი თარიღი",
+    "endDate": "საბოლოო თარიღი",
+    "apply": "გამოყენება",
+    "presets": {
+      "last7days": "ბოლო 7 დღე",
+      "last30days": "ბოლო 30 დღე",
+      "thisMonth": "ეს თვე",
+      "custom": "მორგებული დიაპაზონი"
+    },
+    "statistics": {
+      "title": "გაყიდვების სტატისტიკა",
+      "totalItemsSold": "სულ გაყიდული ნივთები",
+      "totalRevenue": "სულ შემოსავალი",
+      "totalCost": "სულ ხარჯი",
+      "totalProfit": "სულ მოგება"
+    },
+    "noSalesInRange": "ამ თარიღის დიაპაზონში გაყიდვები არ მოიძებნა",
+    "invalidDateRange": "საბოლოო თარიღი უნდა იყოს საწყისი თარიღის შემდეგ",
+    "clickToExpand": "დააჭირეთ ჯგუფის სათაურს გასაშლელად",
+    "unitPrice": "ერთეულის ფასი",
+    "date": "თარიღი",
+    "return": "დაბრუნება",
+    "discard": "გადაგდება",
+    "returnQuestion": "როგორ გსურთ დაბრუნებული ნივთის \"{{item}}\" მართვა?",
     "sellItem": "ნივთის გაყიდვა",
     "createSale": "გაყიდვის შექმნა",
     "quantitySold": "გაყიდული რაოდენობა",

@@ -2,6 +2,8 @@
   "nav": {
     "itemTracker": "Item Tracker",
     "dashboard": "Dashboard",
+    "sales": "Sales",
+    "history": "History",
     "profile": "Profile",
     "welcome": "Welcome, {{name}}!",
     "logout": "Logout",
@@ -110,6 +112,32 @@
     "deleteSnapshot": "Delete snapshot"
   },
   "sales": {
+    "title": "Sales",
+    "dateRange": "Date Range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "apply": "Apply",
+    "presets": {
+      "last7days": "Last 7 Days",
+      "last30days": "Last 30 Days",
+      "thisMonth": "This Month",
+      "custom": "Custom Range"
+    },
+    "statistics": {
+      "title": "Sales Statistics",
+      "totalItemsSold": "Total Items Sold",
+      "totalRevenue": "Total Revenue",
+      "totalCost": "Total Cost",
+      "totalProfit": "Total Profit"
+    },
+    "noSalesInRange": "No sales found in this date range",
+    "invalidDateRange": "End date must be after start date",
+    "clickToExpand": "Click group header to expand",
+    "unitPrice": "Unit Price",
+    "date": "Date",
+    "return": "Return",
+    "discard": "Discard",
+    "returnQuestion": "How would you like to handle the returned item \"{{item}}\"?",
     "sellItem": "Sell Item",
     "createSale": "Create Sale",
     "quantitySold": "Quantity Sold",
