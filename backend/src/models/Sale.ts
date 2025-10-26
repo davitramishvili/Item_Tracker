@@ -230,9 +230,12 @@ export class SaleModel {
         sg.buyer_name as group_buyer_name,
         sg.buyer_phone as group_buyer_phone,
         sg.notes as group_notes,
-        sg.sale_date,
+        sg.sale_date as group_sale_date,
         sg.created_at as group_created_at,
-        s.*
+        s.id, s.user_id, s.sale_group_id, s.item_id, s.item_name,
+        s.quantity_sold, s.sale_price, s.total_amount, s.currency,
+        s.buyer_name, s.buyer_phone, s.notes, s.sale_date,
+        s.status, s.returned_at, s.created_at, s.updated_at
        FROM sale_groups sg
        LEFT JOIN sales s ON sg.id = s.sale_group_id
        WHERE sg.user_id = ? AND sg.sale_date = ?
@@ -252,7 +255,7 @@ export class SaleModel {
           buyer_name: row.group_buyer_name,
           buyer_phone: row.group_buyer_phone,
           notes: row.group_notes,
-          sale_date: row.sale_date,
+          sale_date: row.group_sale_date,
           created_at: row.group_created_at,
           items: []
         });
@@ -269,7 +272,10 @@ export class SaleModel {
           sale_price: row.sale_price,
           total_amount: row.total_amount,
           currency: row.currency,
+          buyer_name: row.buyer_name,
+          buyer_phone: row.buyer_phone,
           notes: row.notes,
+          sale_date: row.sale_date,
           status: row.status,
           returned_at: row.returned_at,
           created_at: row.created_at,
@@ -289,9 +295,12 @@ export class SaleModel {
         sg.buyer_name as group_buyer_name,
         sg.buyer_phone as group_buyer_phone,
         sg.notes as group_notes,
-        sg.sale_date,
+        sg.sale_date as group_sale_date,
         sg.created_at as group_created_at,
-        s.*
+        s.id, s.user_id, s.sale_group_id, s.item_id, s.item_name,
+        s.quantity_sold, s.sale_price, s.total_amount, s.currency,
+        s.buyer_name, s.buyer_phone, s.notes, s.sale_date,
+        s.status, s.returned_at, s.created_at, s.updated_at
        FROM sale_groups sg
        LEFT JOIN sales s ON sg.id = s.sale_group_id
        WHERE sg.user_id = ? AND sg.sale_date BETWEEN ? AND ?
@@ -311,7 +320,7 @@ export class SaleModel {
           buyer_name: row.group_buyer_name,
           buyer_phone: row.group_buyer_phone,
           notes: row.group_notes,
-          sale_date: row.sale_date,
+          sale_date: row.group_sale_date,
           created_at: row.group_created_at,
           items: []
         });
@@ -328,7 +337,10 @@ export class SaleModel {
           sale_price: row.sale_price,
           total_amount: row.total_amount,
           currency: row.currency,
+          buyer_name: row.buyer_name,
+          buyer_phone: row.buyer_phone,
           notes: row.notes,
+          sale_date: row.sale_date,
           status: row.status,
           returned_at: row.returned_at,
           created_at: row.created_at,

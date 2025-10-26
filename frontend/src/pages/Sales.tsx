@@ -491,7 +491,10 @@ const Sales = () => {
                             </div>
                           ))}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        <div className="text-sm text-gray-600 dark:text-gray-300 mt-2 font-semibold">
+                          📅 {new Date(group.sale_date).toLocaleDateString()}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {new Date(group.created_at).toLocaleString()}
                         </div>
                       </div>
@@ -550,7 +553,9 @@ const Sales = () => {
                                 </div>
                                 <div>
                                   <span className="text-sm text-gray-500 dark:text-gray-400">{t('sales.date')}:</span>
-                                  <div className="font-semibold dark:text-white">{sale.sale_date}</div>
+                                  <div className="font-semibold dark:text-white">
+                                    {new Date(sale.sale_date || group.sale_date).toLocaleDateString()}
+                                  </div>
                                 </div>
                               </div>
 
