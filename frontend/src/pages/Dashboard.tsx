@@ -821,13 +821,6 @@ const Dashboard = () => {
                 {viewMode === 'card' ? '☰' : '▦'} {viewMode === 'card' ? t('dashboard.tableView') : t('dashboard.cardView')}
               </button>
               <button
-                onClick={() => navigate('/history')}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-                title={t('dashboard.history')}
-              >
-                📊 {t('dashboard.history')}
-              </button>
-              <button
                 onClick={handleCreateSnapshot}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                 title={t('dashboard.snapshot')}
