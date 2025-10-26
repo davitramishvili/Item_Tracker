@@ -49,16 +49,37 @@ export const createItem = async (req: Request, res: Response): Promise<void> => 
     // Check for duplicate item (same name and category) unless skipDuplicateCheck is true
     if (!skipDuplicateCheck && category) {
       const existingItems = await ItemModel.findByUserId(userId);
-      const duplicate = existingItems.find(
-        item => item.name === name.trim() && item.category === category.trim()
+
+      // First check: exact match (name + category + purchase_price)
+      const exactDuplicate = existingItems.find(
+        item => item.name === name.trim() &&
+                item.category === category.trim() &&
+                item.purchase_price === (purchase_price || 0)
       );
 
-      if (duplicate) {
-        // Return duplicate found response - frontend will handle the confirmation
+      // Second check: name + category match but different price
+      const nameDuplicate = existingItems.find(
+        item => item.name === name.trim() &&
+                item.category === category.trim() &&
+                item.purchase_price !== (purchase_price || 0)
+      );
+
+      if (exactDuplicate) {
+        // Return exact duplicate found response
         res.status(409).json({
           error: 'Duplicate item found',
-          duplicate: duplicate,
-          message: 'An item with this name already exists in this status'
+          duplicate: exactDuplicate,
+          duplicateType: 'exact',
+          message: 'An item with this name and purchase price already exists in this status'
+        });
+        return;
+      } else if (nameDuplicate) {
+        // Return price mismatch response
+        res.status(409).json({
+          error: 'Duplicate item found',
+          duplicate: nameDuplicate,
+          duplicateType: 'price_mismatch',
+          message: 'An item with this name exists but has a different purchase price'
         });
         return;
       }
