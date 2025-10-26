@@ -105,8 +105,9 @@ class AuthService {
         return { success: false, message: 'Invalid credentials' };
       }
 
-      // Check if email is verified
-      if (!user.is_verified) {
+      // Check if email is verified (MySQL returns TINYINT as 0 or 1, convert to boolean)
+      const isVerified = Boolean(user.is_verified);
+      if (!isVerified) {
         return {
           success: false,
           message: 'Please verify your email before logging in. Check your inbox.',
@@ -129,7 +130,7 @@ class AuthService {
           email: user.email,
           username: user.username,
           full_name: user.full_name,
-          email_verified: user.is_verified,
+          email_verified: Boolean(user.is_verified),
         },
       };
     } catch (error) {
@@ -298,7 +299,7 @@ class AuthService {
           email: user.email,
           username: user.username,
           full_name: user.full_name,
-          email_verified: user.is_verified,
+          email_verified: Boolean(user.is_verified),
         },
       };
     } catch (error) {

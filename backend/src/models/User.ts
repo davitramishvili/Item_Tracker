@@ -66,7 +66,9 @@ class UserModel {
   // Find user by email
   async findByEmail(email: string): Promise<User | null> {
     const [rows] = await promisePool.query<User[] & RowDataPacket[]>(
-      'SELECT *, email_verified as is_verified FROM users WHERE email = ?',
+      `SELECT id, email, username, password_hash, full_name, email_verified as is_verified,
+       verification_token, reset_password_token, reset_password_expires, google_id, created_at, updated_at
+       FROM users WHERE email = ?`,
       [email]
     );
     return rows.length > 0 ? rows[0] : null;
@@ -75,7 +77,9 @@ class UserModel {
   // Find user by username
   async findByUsername(username: string): Promise<User | null> {
     const [rows] = await promisePool.query<User[] & RowDataPacket[]>(
-      'SELECT *, email_verified as is_verified FROM users WHERE username = ?',
+      `SELECT id, email, username, password_hash, full_name, email_verified as is_verified,
+       verification_token, reset_password_token, reset_password_expires, google_id, created_at, updated_at
+       FROM users WHERE username = ?`,
       [username]
     );
     return rows.length > 0 ? rows[0] : null;
