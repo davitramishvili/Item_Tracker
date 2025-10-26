@@ -33,3 +33,6 @@ PROJECT_IMPLEMENTATION_PLAN.md
 
 # System files
 nul
+
+# Backend scripts (test/dev scripts)
+backend/src/scripts/
