@@ -547,6 +547,8 @@ const Dashboard = () => {
             quantity: moveQuantity,
             price_per_unit: movingItem.price_per_unit,
             currency: movingItem.currency,
+            purchase_price: movingItem.purchase_price,
+            purchase_currency: movingItem.purchase_currency,
             category: targetStatus,
           });
 
