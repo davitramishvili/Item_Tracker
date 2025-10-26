@@ -21,6 +21,7 @@ const Sales = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
+  const [exchangeRate, setExchangeRate] = useState<string>('');
 
   // Edit sale modal state
   const [showEditSaleModal, setShowEditSaleModal] = useState(false);
@@ -404,7 +405,7 @@ const Sales = () => {
 
           {/* Statistics Dashboard */}
           {!loading && statistics && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               {/* Total Items Sold */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-lg shadow-lg p-6">
                 <h3 className="text-sm font-semibold mb-2 opacity-90">{t('sales.statistics.totalItemsSold')}</h3>
@@ -421,24 +422,56 @@ const Sales = () => {
                 ))}
               </div>
 
-              {/* Total Cost */}
+              {/* Total Cost (Always USD) */}
               <div className="bg-gradient-to-r from-orange-600 to-orange-700 dark:from-orange-700 dark:to-orange-800 text-white rounded-lg shadow-lg p-6">
                 <h3 className="text-sm font-semibold mb-2 opacity-90">{t('sales.statistics.totalCost')}</h3>
-                {statistics.byCurrency.map(stat => (
-                  <div key={stat.currency} className="text-2xl font-bold">
-                    {stat.cost.toFixed(2)} {stat.currency}
-                  </div>
-                ))}
+                <div className="text-2xl font-bold">
+                  {statistics.byCurrency.find(s => s.currency === 'USD')?.cost.toFixed(2) || '0.00'} USD
+                </div>
+              </div>
+
+              {/* Exchange Rate Input */}
+              <div className="bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-700 dark:to-gray-800 text-white rounded-lg shadow-lg p-6">
+                <h3 className="text-sm font-semibold mb-2 opacity-90">Exchange Rate</h3>
+                <div className="text-xs mb-1 opacity-75">1 USD =</div>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={exchangeRate}
+                  onChange={(e) => setExchangeRate(e.target.value)}
+                  placeholder="Enter rate"
+                  className="w-full px-3 py-2 bg-white/20 text-white placeholder-white/50 border border-white/30 rounded-md focus:outline-none focus:ring-2 focus:ring-white/50"
+                />
+                <div className="text-xs mt-1 opacity-75">
+                  {statistics.byCurrency[0]?.currency || 'GEL'}
+                </div>
               </div>
 
               {/* Total Profit */}
-              <div className={`bg-gradient-to-r ${statistics.totalProfit >= 0 ? 'from-purple-600 to-purple-700 dark:from-purple-700 dark:to-purple-800' : 'from-red-600 to-red-700 dark:from-red-700 dark:to-red-800'} text-white rounded-lg shadow-lg p-6`}>
+              <div className={`bg-gradient-to-r ${(() => {
+                if (!exchangeRate) return 'from-gray-500 to-gray-600 dark:from-gray-600 dark:to-gray-700';
+                const rate = parseFloat(exchangeRate);
+                const totalCostUSD = statistics.byCurrency.find(s => s.currency === 'USD')?.cost || 0;
+                const totalRevenue = statistics.byCurrency[0]?.revenue || 0;
+                const revCurrency = statistics.byCurrency[0]?.currency || 'USD';
+                const profit = revCurrency === 'USD' ? totalRevenue - totalCostUSD : totalRevenue - (rate * totalCostUSD);
+                return profit >= 0 ? 'from-purple-600 to-purple-700 dark:from-purple-700 dark:to-purple-800' : 'from-red-600 to-red-700 dark:from-red-700 dark:to-red-800';
+              })()} text-white rounded-lg shadow-lg p-6`}>
                 <h3 className="text-sm font-semibold mb-2 opacity-90">{t('sales.statistics.totalProfit')}</h3>
-                {statistics.byCurrency.map(stat => (
-                  <div key={stat.currency} className="text-2xl font-bold">
-                    {stat.profit >= 0 ? '+' : ''}{stat.profit.toFixed(2)} {stat.currency}
-                  </div>
-                ))}
+                {!exchangeRate ? (
+                  <div className="text-sm opacity-75 italic">Enter exchange rate</div>
+                ) : (() => {
+                  const rate = parseFloat(exchangeRate);
+                  const totalCostUSD = statistics.byCurrency.find(s => s.currency === 'USD')?.cost || 0;
+                  const totalRevenue = statistics.byCurrency[0]?.revenue || 0;
+                  const revCurrency = statistics.byCurrency[0]?.currency || 'USD';
+                  const profit = revCurrency === 'USD' ? totalRevenue - totalCostUSD : totalRevenue - (rate * totalCostUSD);
+                  return (
+                    <div className="text-2xl font-bold">
+                      {profit >= 0 ? '+' : ''}{profit.toFixed(2)} {revCurrency}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
