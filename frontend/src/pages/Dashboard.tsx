@@ -83,7 +83,7 @@ const Dashboard = () => {
   // Price mismatch modal state
   const [showPriceMismatchModal, setShowPriceMismatchModal] = useState(false);
   const [priceMismatchData, setPriceMismatchData] = useState<{
-    existingItem: Item;
+    existingItems: Item[]; // Changed to array
     movingItem: Item;
     targetStatus: string;
     moveQuantity: number;
@@ -127,8 +127,34 @@ const Dashboard = () => {
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+
     try {
-      const newItem = await itemService.create(formData);
+      // Check for ALL existing items with same name and category on the frontend
+      const existingItemsWithSameName = items.filter(
+        item => item.name === formData.name.trim() && item.category === formData.category
+      );
+
+      if (existingItemsWithSameName.length > 0) {
+        // Show price mismatch modal with all existing items
+        setPriceMismatchData({
+          existingItems: existingItemsWithSameName,
+          movingItem: {
+            ...formData,
+            id: -1, // Temporary ID for new item
+            quantity: formData.quantity || 1,
+            name: formData.name.trim(),
+          } as Item,
+          targetStatus: formData.category || '',
+          moveQuantity: formData.quantity || 1,
+        });
+        setShowPriceMismatchModal(true);
+        setShowAddModal(false);
+        setSubmitting(false);
+        return;
+      }
+
+      // No duplicates found, create the item
+      const newItem = await itemService.create({ ...formData, skipDuplicateCheck: true });
       setItems([newItem, ...items]);
       setShowAddModal(false);
       setFormData({
@@ -143,34 +169,7 @@ const Dashboard = () => {
       });
       await loadItems(); // Refresh items list
     } catch (err: any) {
-      // Check if it's a duplicate item error (status 409)
-      if (err.response?.status === 409 && err.response?.data?.duplicate) {
-        const duplicateType = err.response.data.duplicateType;
-
-        if (duplicateType === 'price_mismatch') {
-          // Show price mismatch modal for item creation
-          setPriceMismatchData({
-            existingItem: err.response.data.duplicate,
-            movingItem: {
-              ...formData,
-              id: -1, // Temporary ID for new item
-              quantity: formData.quantity || 1,
-            } as Item,
-            targetStatus: formData.category || '',
-            moveQuantity: formData.quantity || 1,
-          });
-          setShowPriceMismatchModal(true);
-          setShowAddModal(false);
-        } else {
-          // Show regular duplicate modal for exact match
-          setDuplicateItem(err.response.data.duplicate);
-          setPendingItemData(formData);
-          setShowDuplicateModal(true);
-          setShowAddModal(false);
-        }
-      } else {
-        setError(err.response?.data?.error || 'Failed to add item');
-      }
+      setError(err.response?.data?.error || 'Failed to add item');
     } finally {
       setSubmitting(false);
     }
@@ -495,13 +494,17 @@ const Dashboard = () => {
              i.id !== movingItem.id
       );
 
-      // Second check: name + category match but different price OR currency
-      const nameMatch = items.find(
+      // Second check: find ALL items with same name + category (regardless of price)
+      const allNameMatches = items.filter(
         i => i.name === movingItem.name &&
              i.category === targetStatus &&
-             (!pricesMatch(i.purchase_price, movingItem.purchase_price) ||
-              !currenciesMatch(i.purchase_currency, movingItem.purchase_currency)) &&
              i.id !== movingItem.id
+      );
+
+      // Check if there are items with different prices/currencies
+      const itemsWithDifferentPrice = allNameMatches.filter(
+        i => !pricesMatch(i.purchase_price, movingItem.purchase_price) ||
+             !currenciesMatch(i.purchase_currency, movingItem.purchase_currency)
       );
 
       // Debug logging
@@ -509,13 +512,14 @@ const Dashboard = () => {
         movingItem: { name: movingItem.name, purchase_price: movingItem.purchase_price },
         targetStatus,
         exactMatch: exactMatch ? { name: exactMatch.name, purchase_price: exactMatch.purchase_price } : null,
-        nameMatch: nameMatch ? { name: nameMatch.name, purchase_price: nameMatch.purchase_price } : null,
+        allNameMatches: allNameMatches.length,
+        itemsWithDifferentPrice: itemsWithDifferentPrice.length,
       });
 
-      // If price mismatch detected, show modal
-      if (nameMatch) {
+      // If there are ANY items with same name (exact match OR different price), show modal
+      if (allNameMatches.length > 0) {
         setPriceMismatchData({
-          existingItem: nameMatch,
+          existingItems: allNameMatches,
           movingItem: movingItem,
           targetStatus: targetStatus,
           moveQuantity: moveQuantity
@@ -525,8 +529,8 @@ const Dashboard = () => {
         return;
       }
 
-      // Use exactMatch (or undefined) for the rest of the logic
-      const existingItem = exactMatch;
+      // No matches found - create new item
+      const existingItem = undefined;
 
       if (moveQuantity === movingItem.quantity) {
         // Moving all items - same as before
@@ -596,14 +600,29 @@ const Dashboard = () => {
   };
 
   // Handler for "Combine" option in price mismatch modal
-  const handleCombineWithPriceMismatch = async (editedPrice?: number, editedCurrency?: string) => {
+  const handleCombineWithPriceMismatch = async (selectedItemId: number, editedPrice?: number, editedCurrency?: string) => {
     if (!priceMismatchData) return;
 
-    const { existingItem, movingItem, moveQuantity } = priceMismatchData;
+    const { existingItems, movingItem, moveQuantity } = priceMismatchData;
+    const existingItem = existingItems.find(item => item.id === selectedItemId);
+
+    if (!existingItem) {
+      console.error('Selected item not found');
+      return;
+    }
 
     setSubmitting(true);
     try {
-      if (moveQuantity === movingItem.quantity) {
+      // Check if this is from "Add Item" (id = -1) or from "Move Item"
+      const isFromAddItem = movingItem.id === -1;
+
+      if (isFromAddItem) {
+        // Adding new item: just update the existing item quantity
+        const newQuantity = existingItem.quantity + moveQuantity;
+        await itemService.update(existingItem.id, { quantity: newQuantity });
+        await loadItems(); // Refresh items list
+        setSnapshotMessage(t('item.merged'));
+      } else if (moveQuantity === movingItem.quantity) {
         // Moving all: add to existing, delete moving item
         const newQuantity = existingItem.quantity + moveQuantity;
         await itemService.update(existingItem.id, { quantity: newQuantity });
@@ -2037,12 +2056,13 @@ const Dashboard = () => {
             setShowPriceMismatchModal(false);
             setPriceMismatchData(null);
           }}
-          existingItem={{
-            name: priceMismatchData.existingItem.name,
-            quantity: priceMismatchData.existingItem.quantity,
-            purchase_price: priceMismatchData.existingItem.purchase_price ?? null,
-            purchase_currency: priceMismatchData.existingItem.purchase_currency,
-          }}
+          existingItems={priceMismatchData.existingItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            purchase_price: item.purchase_price ?? null,
+            purchase_currency: item.purchase_currency,
+          }))}
           movingItem={{
             name: priceMismatchData.movingItem.name,
             quantity: priceMismatchData.moveQuantity,

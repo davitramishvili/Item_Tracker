@@ -1,48 +1,57 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 
+interface ExistingItemOption {
+  id: number;
+  name: string;
+  quantity: number;
+  purchase_price: number | null;
+  purchase_currency?: string;
+}
+
 interface PriceMismatchModalProps {
   show: boolean;
   onClose: () => void;
-  existingItem: {
-    name: string;
-    quantity: number;
-    purchase_price: number | null;
-    purchase_currency?: string;
-  };
+  existingItems: ExistingItemOption[]; // Changed from single item to array
   movingItem: {
     name: string;
     quantity: number;
     purchase_price: number | null;
     purchase_currency?: string;
   };
-  onCombine: (editedPrice?: number, editedCurrency?: string) => void;
+  onCombine: (selectedItemId: number, editedPrice?: number, editedCurrency?: string) => void;
   onCreateNew: (editedPrice?: number, editedCurrency?: string) => void;
 }
 
 const PriceMismatchModal = ({
   show,
   onClose,
-  existingItem,
+  existingItems,
   movingItem,
   onCombine,
   onCreateNew,
 }: PriceMismatchModalProps) => {
   const { t } = useTranslation();
 
+  // Selected existing item from dropdown
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+
   // Editable moving item price state
   const [editedPrice, setEditedPrice] = useState<number>(movingItem.purchase_price || 0);
   const [editedCurrency, setEditedCurrency] = useState<string>(movingItem.purchase_currency || 'USD');
 
-  // Reset edited values when modal opens with new data
+  // Reset state when modal opens with new data
   useEffect(() => {
     if (show) {
       setEditedPrice(movingItem.purchase_price || 0);
       setEditedCurrency(movingItem.purchase_currency || 'USD');
+      setSelectedItemId(null); // Reset selection
     }
   }, [show, movingItem.purchase_price, movingItem.purchase_currency]);
 
   if (!show) return null;
+
+  const selectedItem = existingItems.find(item => item.id === selectedItemId);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -63,33 +72,57 @@ const PriceMismatchModal = ({
               <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">
                 {t('item.priceMismatch.existingItem')}
               </h4>
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {/* Dropdown to select existing item */}
                 <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {t('form.name')}:
-                  </span>
-                  <div className="font-medium text-gray-800 dark:text-white">
-                    {existingItem.name}
-                  </div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                    Select Item to Compare:
+                  </label>
+                  <select
+                    value={selectedItemId || ''}
+                    onChange={(e) => setSelectedItemId(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-600 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select item...</option>
+                    {existingItems.map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} - Purchase: {item.purchase_price !== null ? `${Number(item.purchase_price).toFixed(2)} ${item.purchase_currency || 'USD'}` : 'N/A'} (Qty: {item.quantity})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {t('item.priceMismatch.quantity')}:
-                  </span>
-                  <div className="font-medium text-gray-800 dark:text-white">
-                    {existingItem.quantity}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {t('item.priceMismatch.purchasePrice')}:
-                  </span>
-                  <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                    {existingItem.purchase_price !== null && existingItem.purchase_price !== undefined
-                      ? `${Number(existingItem.purchase_price).toFixed(2)} ${existingItem.purchase_currency || 'USD'}`
-                      : 'N/A'}
-                  </div>
-                </div>
+
+                {/* Show selected item details */}
+                {selectedItem && (
+                  <>
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {t('form.name')}:
+                      </span>
+                      <div className="font-medium text-gray-800 dark:text-white">
+                        {selectedItem.name}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {t('item.priceMismatch.quantity')}:
+                      </span>
+                      <div className="font-medium text-gray-800 dark:text-white">
+                        {selectedItem.quantity}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {t('item.priceMismatch.purchasePrice')}:
+                      </span>
+                      <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                        {selectedItem.purchase_price !== null && selectedItem.purchase_price !== undefined
+                          ? `${Number(selectedItem.purchase_price).toFixed(2)} ${selectedItem.purchase_currency || 'USD'}`
+                          : 'N/A'}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -149,12 +182,13 @@ const PriceMismatchModal = ({
           <div className="space-y-3">
             {/* Combine Button */}
             <button
-              onClick={() => onCombine(editedPrice, editedCurrency)}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-left"
+              onClick={() => selectedItemId && onCombine(selectedItemId, editedPrice, editedCurrency)}
+              disabled={!selectedItemId}
+              className={`w-full px-4 py-3 ${selectedItemId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'} text-white rounded-md transition-colors text-left`}
             >
               <div className="font-semibold">{t('item.priceMismatch.combine')}</div>
               <div className="text-sm opacity-90 mt-1">
-                {t('item.priceMismatch.combineDescription')}
+                {selectedItemId ? t('item.priceMismatch.combineDescription') : 'Select an item first'}
               </div>
             </button>
 
