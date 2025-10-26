@@ -471,52 +471,21 @@ const Dashboard = () => {
 
     setSubmitting(true);
     try {
-      // Helper function to compare prices (handles string/number and null/undefined)
-      const pricesMatch = (price1: number | undefined, price2: number | undefined): boolean => {
-        const p1 = price1 != null ? Number(price1) : 0;
-        const p2 = price2 != null ? Number(price2) : 0;
-        return p1 === p2;
-      };
-
-      // Helper function to compare currencies
-      const currenciesMatch = (currency1: string | undefined, currency2: string | undefined): boolean => {
-        const c1 = currency1 || 'USD';
-        const c2 = currency2 || 'USD';
-        return c1 === c2;
-      };
-
-      // First check: exact match (name + category + purchase_price + purchase_currency)
-      const exactMatch = items.find(
-        i => i.name === movingItem.name &&
-             i.category === targetStatus &&
-             pricesMatch(i.purchase_price, movingItem.purchase_price) &&
-             currenciesMatch(i.purchase_currency, movingItem.purchase_currency) &&
-             i.id !== movingItem.id
-      );
-
-      // Second check: find ALL items with same name + category (regardless of price)
+      // Find ALL items with same name + category (regardless of price)
       const allNameMatches = items.filter(
         i => i.name === movingItem.name &&
              i.category === targetStatus &&
              i.id !== movingItem.id
       );
 
-      // Check if there are items with different prices/currencies
-      const itemsWithDifferentPrice = allNameMatches.filter(
-        i => !pricesMatch(i.purchase_price, movingItem.purchase_price) ||
-             !currenciesMatch(i.purchase_currency, movingItem.purchase_currency)
-      );
-
       // Debug logging
       console.log('🔍 Move check:', {
         movingItem: { name: movingItem.name, purchase_price: movingItem.purchase_price },
         targetStatus,
-        exactMatch: exactMatch ? { name: exactMatch.name, purchase_price: exactMatch.purchase_price } : null,
         allNameMatches: allNameMatches.length,
-        itemsWithDifferentPrice: itemsWithDifferentPrice.length,
       });
 
-      // If there are ANY items with same name (exact match OR different price), show modal
+      // If there are ANY items with same name, show modal to let user choose
       if (allNameMatches.length > 0) {
         setPriceMismatchData({
           existingItems: allNameMatches,
@@ -529,63 +498,33 @@ const Dashboard = () => {
         return;
       }
 
-      // No matches found - create new item
-      const existingItem = undefined;
+      // No matches found - proceed with creating/moving item
 
       if (moveQuantity === movingItem.quantity) {
-        // Moving all items - same as before
-        if (existingItem) {
-          // Merge: Add quantity to existing item and delete current item
-          const newQuantity = existingItem.quantity + moveQuantity;
-          await itemService.update(existingItem.id, { quantity: newQuantity });
-          await itemService.delete(movingItem.id);
-
-          setItems(items.filter(i => i.id !== movingItem.id).map(i =>
-            i.id === existingItem.id ? { ...i, quantity: newQuantity } : i
-          ));
-          setSnapshotMessage(t('item.merged'));
-        } else {
-          // Move: Update category to target status
-          const updatedItem = await itemService.update(movingItem.id, { category: targetStatus });
-          setItems(items.map(i => i.id === movingItem.id ? updatedItem : i));
-          setSnapshotMessage(t('item.moved'));
-        }
+        // Moving all items - just update category
+        const updatedItem = await itemService.update(movingItem.id, { category: targetStatus });
+        setItems(items.map(i => i.id === movingItem.id ? updatedItem : i));
+        setSnapshotMessage(t('item.moved'));
       } else {
-        // Moving partial quantity - need to split
+        // Moving partial quantity - create new item in target status
         const remainingQuantity = movingItem.quantity - moveQuantity;
 
-        if (existingItem) {
-          // Merge partial quantity with existing item
-          const newQuantity = existingItem.quantity + moveQuantity;
-          await itemService.update(existingItem.id, { quantity: newQuantity });
-          // Update the current item with remaining quantity
-          const updatedItem = await itemService.update(movingItem.id, { quantity: remainingQuantity });
+        const newItem = await itemService.create({
+          name: movingItem.name,
+          description: movingItem.description,
+          quantity: moveQuantity,
+          price_per_unit: movingItem.price_per_unit,
+          currency: movingItem.currency,
+          purchase_price: movingItem.purchase_price,
+          purchase_currency: movingItem.purchase_currency,
+          category: targetStatus,
+        });
 
-          setItems(items.map(i => {
-            if (i.id === existingItem.id) return { ...i, quantity: newQuantity };
-            if (i.id === movingItem.id) return updatedItem;
-            return i;
-          }));
-          setSnapshotMessage(t('item.partialMoved'));
-        } else {
-          // Create a new item in the target status with the moved quantity
-          const newItem = await itemService.create({
-            name: movingItem.name,
-            description: movingItem.description,
-            quantity: moveQuantity,
-            price_per_unit: movingItem.price_per_unit,
-            currency: movingItem.currency,
-            purchase_price: movingItem.purchase_price,
-            purchase_currency: movingItem.purchase_currency,
-            category: targetStatus,
-          });
+        // Update the current item with remaining quantity
+        const updatedItem = await itemService.update(movingItem.id, { quantity: remainingQuantity });
 
-          // Update the current item with remaining quantity
-          const updatedItem = await itemService.update(movingItem.id, { quantity: remainingQuantity });
-
-          setItems([...items.map(i => i.id === movingItem.id ? updatedItem : i), newItem]);
-          setSnapshotMessage(t('item.partialMoved'));
-        }
+        setItems([...items.map(i => i.id === movingItem.id ? updatedItem : i), newItem]);
+        setSnapshotMessage(t('item.partialMoved'));
       }
 
       setTimeout(() => setSnapshotMessage(''), 3000);
@@ -600,7 +539,7 @@ const Dashboard = () => {
   };
 
   // Handler for "Combine" option in price mismatch modal
-  const handleCombineWithPriceMismatch = async (selectedItemId: number, editedPrice?: number, editedCurrency?: string) => {
+  const handleCombineWithPriceMismatch = async (selectedItemId: number, _editedPrice?: number, _editedCurrency?: string) => {
     if (!priceMismatchData) return;
 
     const { existingItems, movingItem, moveQuantity } = priceMismatchData;
@@ -668,7 +607,7 @@ const Dashboard = () => {
 
     // Use edited values if provided, otherwise use original
     const finalPurchasePrice = editedPrice !== undefined ? editedPrice : movingItem.purchase_price;
-    const finalPurchaseCurrency = editedCurrency || movingItem.purchase_currency;
+    const finalPurchaseCurrency = (editedCurrency || movingItem.purchase_currency) as 'GEL' | 'USD' | undefined;
 
     setSubmitting(true);
     try {
