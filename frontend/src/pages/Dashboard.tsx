@@ -596,7 +596,7 @@ const Dashboard = () => {
   };
 
   // Handler for "Combine" option in price mismatch modal
-  const handleCombineWithPriceMismatch = async () => {
+  const handleCombineWithPriceMismatch = async (editedPrice?: number, editedCurrency?: string) => {
     if (!priceMismatchData) return;
 
     const { existingItem, movingItem, moveQuantity } = priceMismatchData;
@@ -642,28 +642,36 @@ const Dashboard = () => {
   };
 
   // Handler for "Create New" option in price mismatch modal
-  const handleCreateNewWithDifferentPrice = async () => {
+  const handleCreateNewWithDifferentPrice = async (editedPrice?: number, editedCurrency?: string) => {
     if (!priceMismatchData) return;
 
     const { movingItem, targetStatus, moveQuantity } = priceMismatchData;
 
+    // Use edited values if provided, otherwise use original
+    const finalPurchasePrice = editedPrice !== undefined ? editedPrice : movingItem.purchase_price;
+    const finalPurchaseCurrency = editedCurrency || movingItem.purchase_currency;
+
     setSubmitting(true);
     try {
       if (moveQuantity === movingItem.quantity) {
-        // Moving all: just update category
-        const updatedItem = await itemService.update(movingItem.id, { category: targetStatus });
+        // Moving all: update category and purchase price
+        const updatedItem = await itemService.update(movingItem.id, {
+          category: targetStatus,
+          purchase_price: finalPurchasePrice,
+          purchase_currency: finalPurchaseCurrency
+        });
         setItems(items.map(i => i.id === movingItem.id ? updatedItem : i));
         setSnapshotMessage(t('item.moved'));
       } else {
-        // Moving partial: create new item, reduce original
+        // Moving partial: create new item with edited price, reduce original
         const newItem = await itemService.create({
           name: movingItem.name,
           description: movingItem.description,
           quantity: moveQuantity,
           price_per_unit: movingItem.price_per_unit,
           currency: movingItem.currency,
-          purchase_price: movingItem.purchase_price,
-          purchase_currency: movingItem.purchase_currency,
+          purchase_price: finalPurchasePrice,
+          purchase_currency: finalPurchaseCurrency,
           category: targetStatus,
           skipDuplicateCheck: true, // Skip duplicate check since user chose to create separate
         });
