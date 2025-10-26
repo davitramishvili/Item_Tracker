@@ -59,7 +59,20 @@
     "mergeItems": "Merge Items",
     "createSeparate": "Create Separate",
     "mergeDescription": "Add {{quantity}} to existing item (Total: {{total}})",
-    "createDescription": "Create new separate item"
+    "createDescription": "Create new separate item",
+    "priceMismatch": {
+      "title": "Purchase Price Mismatch",
+      "description": "Different purchase prices detected for items with the same name.",
+      "existingItem": "Existing Item",
+      "movingItem": "Moving Item",
+      "newItem": "New Item",
+      "quantity": "Quantity",
+      "purchasePrice": "Purchase Price",
+      "combine": "Combine Items",
+      "combineDescription": "Merge quantities and keep existing purchase price",
+      "createNew": "Create New Item",
+      "createNewDescription": "Create separate item with different purchase price"
+    }
   },
   "form": {
     "name": "Name",

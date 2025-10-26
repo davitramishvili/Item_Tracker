@@ -59,7 +59,20 @@
     "mergeItems": "გაერთიანება",
     "createSeparate": "ცალკე შექმნა",
     "mergeDescription": "დაამატეთ {{quantity}} არსებულ ნივთს (ჯამი: {{total}})",
-    "createDescription": "შექმენით ახალი ცალკე ნივთი"
+    "createDescription": "შექმენით ახალი ცალკე ნივთი",
+    "priceMismatch": {
+      "title": "შესყიდვის ფასის განსხვავება",
+      "description": "იგივე სახელის მქონე ნივთებს აქვთ განსხვავებული შესყიდვის ფასები.",
+      "existingItem": "არსებული ნივთი",
+      "movingItem": "გადასატანი ნივთი",
+      "newItem": "ახალი ნივთი",
+      "quantity": "რაოდენობა",
+      "purchasePrice": "შესყიდვის ფასი",
+      "combine": "ნივთების გაერთიანება",
+      "combineDescription": "რაოდენობების შერწყმა და არსებული შესყიდვის ფასის შენარჩუნება",
+      "createNew": "ახალი ნივთის შექმნა",
+      "createNewDescription": "ცალკე ნივთის შექმნა განსხვავებული შესყიდვის ფასით"
+    }
   },
   "form": {
     "name": "სახელი",
