@@ -2039,13 +2039,13 @@ const Dashboard = () => {
           existingItem={{
             name: priceMismatchData.existingItem.name,
             quantity: priceMismatchData.existingItem.quantity,
-            purchase_price: priceMismatchData.existingItem.purchase_price,
+            purchase_price: priceMismatchData.existingItem.purchase_price ?? null,
             purchase_currency: priceMismatchData.existingItem.purchase_currency,
           }}
           movingItem={{
             name: priceMismatchData.movingItem.name,
             quantity: priceMismatchData.moveQuantity,
-            purchase_price: priceMismatchData.movingItem.purchase_price,
+            purchase_price: priceMismatchData.movingItem.purchase_price ?? null,
             purchase_currency: priceMismatchData.movingItem.purchase_currency,
           }}
           onCombine={handleCombineWithPriceMismatch}

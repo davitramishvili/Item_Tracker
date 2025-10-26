@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '../context/ThemeContext';
 
 interface PriceMismatchModalProps {
   show: boolean;
@@ -29,7 +28,6 @@ const PriceMismatchModal = ({
   onCreateNew,
 }: PriceMismatchModalProps) => {
   const { t } = useTranslation();
-  const { isDarkMode } = useTheme();
 
   if (!show) return null;
 
