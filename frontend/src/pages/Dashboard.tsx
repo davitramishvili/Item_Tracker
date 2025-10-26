@@ -479,19 +479,28 @@ const Dashboard = () => {
         return p1 === p2;
       };
 
-      // First check: exact match (name + category + purchase_price)
+      // Helper function to compare currencies
+      const currenciesMatch = (currency1: string | undefined, currency2: string | undefined): boolean => {
+        const c1 = currency1 || 'USD';
+        const c2 = currency2 || 'USD';
+        return c1 === c2;
+      };
+
+      // First check: exact match (name + category + purchase_price + purchase_currency)
       const exactMatch = items.find(
         i => i.name === movingItem.name &&
              i.category === targetStatus &&
              pricesMatch(i.purchase_price, movingItem.purchase_price) &&
+             currenciesMatch(i.purchase_currency, movingItem.purchase_currency) &&
              i.id !== movingItem.id
       );
 
-      // Second check: name + category match but different price
+      // Second check: name + category match but different price OR currency
       const nameMatch = items.find(
         i => i.name === movingItem.name &&
              i.category === targetStatus &&
-             !pricesMatch(i.purchase_price, movingItem.purchase_price) &&
+             (!pricesMatch(i.purchase_price, movingItem.purchase_price) ||
+              !currenciesMatch(i.purchase_currency, movingItem.purchase_currency)) &&
              i.id !== movingItem.id
       );
 
@@ -656,6 +665,7 @@ const Dashboard = () => {
           purchase_price: movingItem.purchase_price,
           purchase_currency: movingItem.purchase_currency,
           category: targetStatus,
+          skipDuplicateCheck: true, // Skip duplicate check since user chose to create separate
         });
 
         const remainingQuantity = movingItem.quantity - moveQuantity;
