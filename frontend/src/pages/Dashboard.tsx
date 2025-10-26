@@ -472,11 +472,18 @@ const Dashboard = () => {
 
     setSubmitting(true);
     try {
+      // Helper function to compare prices (handles string/number and null/undefined)
+      const pricesMatch = (price1: number | undefined, price2: number | undefined): boolean => {
+        const p1 = price1 != null ? Number(price1) : 0;
+        const p2 = price2 != null ? Number(price2) : 0;
+        return p1 === p2;
+      };
+
       // First check: exact match (name + category + purchase_price)
       const exactMatch = items.find(
         i => i.name === movingItem.name &&
              i.category === targetStatus &&
-             i.purchase_price === movingItem.purchase_price &&
+             pricesMatch(i.purchase_price, movingItem.purchase_price) &&
              i.id !== movingItem.id
       );
 
@@ -484,9 +491,17 @@ const Dashboard = () => {
       const nameMatch = items.find(
         i => i.name === movingItem.name &&
              i.category === targetStatus &&
-             i.purchase_price !== movingItem.purchase_price &&
+             !pricesMatch(i.purchase_price, movingItem.purchase_price) &&
              i.id !== movingItem.id
       );
+
+      // Debug logging
+      console.log('🔍 Move check:', {
+        movingItem: { name: movingItem.name, purchase_price: movingItem.purchase_price },
+        targetStatus,
+        exactMatch: exactMatch ? { name: exactMatch.name, purchase_price: exactMatch.purchase_price } : null,
+        nameMatch: nameMatch ? { name: nameMatch.name, purchase_price: nameMatch.purchase_price } : null,
+      });
 
       // If price mismatch detected, show modal
       if (nameMatch) {
