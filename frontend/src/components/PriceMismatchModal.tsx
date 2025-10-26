@@ -74,8 +74,8 @@ const PriceMismatchModal = ({
                     {t('item.priceMismatch.purchasePrice')}:
                   </span>
                   <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                    {existingItem.purchase_price !== null
-                      ? `${existingItem.purchase_price.toFixed(2)} ${existingItem.purchase_currency || 'USD'}`
+                    {existingItem.purchase_price !== null && existingItem.purchase_price !== undefined
+                      ? `${Number(existingItem.purchase_price).toFixed(2)} ${existingItem.purchase_currency || 'USD'}`
                       : 'N/A'}
                   </div>
                 </div>
@@ -109,8 +109,8 @@ const PriceMismatchModal = ({
                     {t('item.priceMismatch.purchasePrice')}:
                   </span>
                   <div className="font-bold text-lg text-orange-600 dark:text-orange-400">
-                    {movingItem.purchase_price !== null
-                      ? `${movingItem.purchase_price.toFixed(2)} ${movingItem.purchase_currency || 'USD'}`
+                    {movingItem.purchase_price !== null && movingItem.purchase_price !== undefined
+                      ? `${Number(movingItem.purchase_price).toFixed(2)} ${movingItem.purchase_currency || 'USD'}`
                       : 'N/A'}
                   </div>
                 </div>
