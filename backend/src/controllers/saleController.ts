@@ -45,6 +45,7 @@ export const createSale = async (req: Request, res: Response): Promise<void> => 
         item_name: item.name,
         quantity_sold: parseInt(quantity_sold),
         sale_price: parseFloat(sale_price),
+        purchase_price: item.purchase_price || 0,
         currency: item.currency || 'USD',
         notes: notes || null
       }]
@@ -111,6 +112,7 @@ export const createMultiItemSale = async (req: Request, res: Response): Promise<
           item_name: item!.name,
           quantity_sold: parseInt(itemData.quantity_sold),
           sale_price: parseFloat(itemData.sale_price),
+          purchase_price: item!.purchase_price || 0,
           currency: item!.currency || 'USD',
           notes: itemData.notes || null
         };

@@ -9,6 +9,7 @@ export interface Sale {
   item_name: string;
   quantity_sold: number;
   sale_price: number;
+  purchase_price: number;
   total_amount: number;
   currency: string;
   buyer_name: string | null;
@@ -28,6 +29,7 @@ export interface CreateSaleData {
   item_name: string;
   quantity_sold: number;
   sale_price: number;
+  purchase_price: number;
   currency: string;
   buyer_name?: string;
   buyer_phone?: string;
@@ -46,6 +48,7 @@ export interface CreateMultiItemSaleData {
     item_name: string;
     quantity_sold: number;
     sale_price: number;
+    purchase_price: number;
     currency: string;
     notes?: string;
   }[];
@@ -67,8 +70,8 @@ export class SaleModel {
 
     const [result] = await promisePool.query<ResultSetHeader>(
       `INSERT INTO sales
-        (user_id, sale_group_id, item_id, item_name, quantity_sold, sale_price, total_amount, currency, buyer_name, buyer_phone, notes, sale_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (user_id, sale_group_id, item_id, item_name, quantity_sold, sale_price, purchase_price, total_amount, currency, buyer_name, buyer_phone, notes, sale_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.user_id,
         data.sale_group_id || null,
@@ -76,6 +79,7 @@ export class SaleModel {
         data.item_name,
         data.quantity_sold,
         data.sale_price,
+        data.purchase_price,
         total_amount,
         data.currency,
         data.buyer_name || null,
@@ -116,8 +120,8 @@ export class SaleModel {
 
         await connection.query<ResultSetHeader>(
           `INSERT INTO sales
-            (user_id, sale_group_id, item_id, item_name, quantity_sold, sale_price, total_amount, currency, notes, sale_date)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (user_id, sale_group_id, item_id, item_name, quantity_sold, sale_price, purchase_price, total_amount, currency, notes, sale_date)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             data.user_id,
             saleGroupId,
@@ -125,6 +129,7 @@ export class SaleModel {
             item.item_name,
             item.quantity_sold,
             item.sale_price,
+            item.purchase_price,
             total_amount,
             item.currency,
             item.notes || null,
@@ -372,10 +377,9 @@ export class SaleModel {
         COUNT(*) as total_sales,
         SUM(s.quantity_sold) as total_items_sold,
         SUM(s.total_amount) as total_revenue,
-        SUM(s.quantity_sold * COALESCE(i.purchase_price, 0)) as total_cost,
+        SUM(s.quantity_sold * COALESCE(s.purchase_price, 0)) as total_cost,
         s.currency
        FROM sales s
-       LEFT JOIN items i ON s.item_id = i.id
        WHERE s.user_id = ? AND s.sale_date BETWEEN ? AND ? AND s.status = 'active'
        GROUP BY s.currency`,
       [userId, startDate, endDate]
