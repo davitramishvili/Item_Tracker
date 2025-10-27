@@ -426,7 +426,7 @@ const Sales = () => {
               <div className="bg-gradient-to-r from-orange-600 to-orange-700 dark:from-orange-700 dark:to-orange-800 text-white rounded-lg shadow-lg p-6">
                 <h3 className="text-sm font-semibold mb-2 opacity-90">{t('sales.statistics.totalCost')}</h3>
                 <div className="text-2xl font-bold">
-                  {statistics.byCurrency.find(s => s.currency === 'USD')?.cost.toFixed(2) || '0.00'} USD
+                  {statistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0).toFixed(2)} USD
                 </div>
               </div>
 
@@ -451,7 +451,7 @@ const Sales = () => {
               <div className={`bg-gradient-to-r ${(() => {
                 if (!exchangeRate) return 'from-gray-500 to-gray-600 dark:from-gray-600 dark:to-gray-700';
                 const rate = parseFloat(exchangeRate);
-                const totalCostUSD = statistics.byCurrency.find(s => s.currency === 'USD')?.cost || 0;
+                const totalCostUSD = statistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0);
                 const totalRevenue = statistics.byCurrency[0]?.revenue || 0;
                 const revCurrency = statistics.byCurrency[0]?.currency || 'USD';
                 const profit = revCurrency === 'USD' ? totalRevenue - totalCostUSD : totalRevenue - (rate * totalCostUSD);
@@ -462,7 +462,7 @@ const Sales = () => {
                   <div className="text-sm opacity-75 italic">Enter exchange rate</div>
                 ) : (() => {
                   const rate = parseFloat(exchangeRate);
-                  const totalCostUSD = statistics.byCurrency.find(s => s.currency === 'USD')?.cost || 0;
+                  const totalCostUSD = statistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0);
                   const totalRevenue = statistics.byCurrency[0]?.revenue || 0;
                   const revCurrency = statistics.byCurrency[0]?.currency || 'USD';
                   const profit = revCurrency === 'USD' ? totalRevenue - totalCostUSD : totalRevenue - (rate * totalCostUSD);
