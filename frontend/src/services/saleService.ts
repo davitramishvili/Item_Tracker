@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import api from './api';
 
 export interface Sale {
   id: number;
@@ -83,74 +81,45 @@ export interface SalesDateRangeResponse {
   statistics: SaleStatistics;
 }
 
-const getAuthToken = () => {
-  return localStorage.getItem('token');
-};
-
 export const saleService = {
   // Create a new sale
   create: async (data: CreateSaleData): Promise<any> => {
-    const token = getAuthToken();
-    const response = await axios.post(`${API_URL}/sales`, data, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await api.post('/sales', data);
     return response.data;
   },
 
   // Create a multi-item sale
   createMultiItem: async (data: CreateMultiItemSaleData): Promise<any> => {
-    const token = getAuthToken();
-    const response = await axios.post(`${API_URL}/sales/multi`, data, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await api.post('/sales/multi', data);
     return response.data;
   },
 
   // Get sales by date (returns grouped sales)
   getByDate: async (date: string): Promise<SaleGroup[]> => {
-    const token = getAuthToken();
-    const response = await axios.get(`${API_URL}/sales?date=${date}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await api.get(`/sales?date=${date}`);
     return response.data.sales;
   },
 
   // Get sales by date range with statistics
   getByDateRange: async (startDate: string, endDate: string): Promise<SalesDateRangeResponse> => {
-    const token = getAuthToken();
-    const response = await axios.get(`${API_URL}/sales/range?startDate=${startDate}&endDate=${endDate}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await api.get(`/sales/range?startDate=${startDate}&endDate=${endDate}`);
     return response.data;
   },
 
   // Update a sale
   update: async (id: number, data: UpdateSaleData): Promise<Sale> => {
-    const token = getAuthToken();
-    const response = await axios.put(`${API_URL}/sales/${id}`, data, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await api.put(`/sales/${id}`, data);
     return response.data.sale;
   },
 
   // Return a sale
   returnSale: async (id: number, addToStock: boolean): Promise<any> => {
-    const token = getAuthToken();
-    const response = await axios.post(
-      `${API_URL}/sales/${id}/return`,
-      { add_to_stock: addToStock },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const response = await api.post(`/sales/${id}/return`, { add_to_stock: addToStock });
     return response.data;
   },
 
   // Delete a sale
   delete: async (id: number): Promise<void> => {
-    const token = getAuthToken();
-    await axios.delete(`${API_URL}/sales/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await api.delete(`/sales/${id}`);
   },
 };
