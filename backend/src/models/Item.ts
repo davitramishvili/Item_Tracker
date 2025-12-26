@@ -127,9 +127,9 @@ export class ItemModel {
     const [rows] = await promisePool.query<RowDataPacket[]>(
       `SELECT * FROM items
        WHERE user_id = ?
-       AND (name LIKE ? OR description LIKE ? OR category LIKE ? OR location LIKE ?)
+       AND (name LIKE ? OR description LIKE ? OR category LIKE ?)
        ORDER BY created_at DESC`,
-      [userId, searchTerm, searchTerm, searchTerm, searchTerm]
+      [userId, searchTerm, searchTerm, searchTerm]
     );
     return rows as Item[];
   }

@@ -36,3 +36,5 @@ nul
 
 # Backend scripts (test/dev scripts)
 backend/src/scripts/
+CLAUDE_PROJECT_GUIDE.md
+FIX_PLAN.md
