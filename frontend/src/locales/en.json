@@ -131,6 +131,7 @@
     "endDate": "End Date",
     "apply": "Apply",
     "presets": {
+      "all": "All Sales",
       "thisMonth": "This Month",
       "lastMonth": "Last Month",
       "custom": "Custom Range"

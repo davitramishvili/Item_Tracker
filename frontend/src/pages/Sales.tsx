@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { saleService, type Sale, type SaleGroup, type SaleStatistics } from '../services/saleService';
 
-type DatePreset = 'thisMonth' | 'lastMonth' | 'custom';
+type DatePreset = 'all' | 'thisMonth' | 'lastMonth' | 'custom';
 
 // Helper function to format date in local timezone (YYYY-MM-DD)
 const formatLocalDate = (date: Date): string => {
@@ -25,7 +25,7 @@ const Sales = () => {
   const [error, setError] = useState('');
   const [sales, setSales] = useState<SaleGroup[]>([]);
   const [statistics, setStatistics] = useState<SaleStatistics | null>(null);
-  const [datePreset, setDatePreset] = useState<DatePreset>('thisMonth');
+  const [datePreset, setDatePreset] = useState<DatePreset>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
@@ -66,6 +66,10 @@ const Sales = () => {
     let start = '';
 
     switch (preset) {
+      case 'all':
+        // Use a very wide date range to get all sales
+        start = '2000-01-01';
+        return { start, end: '2099-12-31' };
       case 'thisMonth':
         const firstDayThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         start = formatLocalDate(firstDayThisMonth);
@@ -96,7 +100,7 @@ const Sales = () => {
 
   // Load data on mount
   useEffect(() => {
-    handlePresetChange('thisMonth');
+    handlePresetChange('all');
   }, []);
 
   // Filter sales by product name search
@@ -185,7 +189,9 @@ const Sales = () => {
         quantity_sold: Number(editSaleFormData.quantity_sold)
       });
 
-      await loadSalesByDateRange(startDate, endDate);
+      // Recalculate dates based on current preset to ensure we reload properly
+      const dates = calculateDates(datePreset);
+      await loadSalesByDateRange(dates.start, dates.end);
       setShowEditSaleModal(false);
       setEditingSale(null);
       setError('');
@@ -207,7 +213,8 @@ const Sales = () => {
     setSubmitting(true);
     try {
       await saleService.returnSale(returningSale.id, addToStock);
-      await loadSalesByDateRange(startDate, endDate);
+      const dates = calculateDates(datePreset);
+      await loadSalesByDateRange(dates.start, dates.end);
       setShowReturnModal(false);
       setReturningSale(null);
     } catch (err: any) {
@@ -222,7 +229,8 @@ const Sales = () => {
 
     try {
       await saleService.delete(id);
-      await loadSalesByDateRange(startDate, endDate);
+      const dates = calculateDates(datePreset);
+      await loadSalesByDateRange(dates.start, dates.end);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete sale');
     }
@@ -328,6 +336,16 @@ const Sales = () => {
             {/* Date Range Presets */}
             <div className="flex flex-wrap gap-2 mb-4">
               <button
+                onClick={() => handlePresetChange('all')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  datePreset === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                {t('sales.presets.all')}
+              </button>
+              <button
                 onClick={() => handlePresetChange('thisMonth')}
                 className={`px-4 py-2 rounded-md font-medium transition-colors ${
                   datePreset === 'thisMonth'
@@ -401,9 +419,11 @@ const Sales = () => {
             )}
 
             {/* Date Range Display */}
-            <div className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-              {t('sales.dateRange')}: <span className="font-semibold">{startDate}</span> → <span className="font-semibold">{endDate}</span>
-            </div>
+            {datePreset !== 'all' && (
+              <div className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                {t('sales.dateRange')}: <span className="font-semibold">{startDate}</span> → <span className="font-semibold">{endDate}</span>
+              </div>
+            )}
           </div>
 
           {/* Error Message */}
