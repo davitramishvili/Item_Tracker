@@ -1,11 +1,19 @@
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { saleService, type Sale, type SaleGroup, type SaleStatistics } from '../services/saleService';
 
-type DatePreset = 'last7days' | 'last30days' | 'thisMonth' | 'custom';
+type DatePreset = 'thisMonth' | 'lastMonth' | 'custom';
+
+// Helper function to format date in local timezone (YYYY-MM-DD)
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const Sales = () => {
   const { user, logout } = useAuth();
@@ -17,11 +25,12 @@ const Sales = () => {
   const [error, setError] = useState('');
   const [sales, setSales] = useState<SaleGroup[]>([]);
   const [statistics, setStatistics] = useState<SaleStatistics | null>(null);
-  const [datePreset, setDatePreset] = useState<DatePreset>('last7days');
+  const [datePreset, setDatePreset] = useState<DatePreset>('thisMonth');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
   const [exchangeRate, setExchangeRate] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Edit sale modal state
   const [showEditSaleModal, setShowEditSaleModal] = useState(false);
@@ -53,24 +62,19 @@ const Sales = () => {
   // Calculate dates based on preset
   const calculateDates = (preset: DatePreset): { start: string; end: string } => {
     const today = new Date();
-    const end = today.toISOString().split('T')[0];
+    const end = formatLocalDate(today);
     let start = '';
 
     switch (preset) {
-      case 'last7days':
-        const last7 = new Date(today);
-        last7.setDate(last7.getDate() - 6);
-        start = last7.toISOString().split('T')[0];
-        break;
-      case 'last30days':
-        const last30 = new Date(today);
-        last30.setDate(last30.getDate() - 29);
-        start = last30.toISOString().split('T')[0];
-        break;
       case 'thisMonth':
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        start = firstDay.toISOString().split('T')[0];
+        const firstDayThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        start = formatLocalDate(firstDayThisMonth);
         break;
+      case 'lastMonth':
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        start = formatLocalDate(firstDayLastMonth);
+        return { start, end: formatLocalDate(lastDayLastMonth) };
       case 'custom':
         // Keep current start/end dates
         return { start: startDate, end: endDate };
@@ -92,8 +96,20 @@ const Sales = () => {
 
   // Load data on mount
   useEffect(() => {
-    handlePresetChange('last7days');
+    handlePresetChange('thisMonth');
   }, []);
+
+  // Filter sales by product name search
+  const filteredSales = useMemo(() => {
+    if (!searchQuery.trim()) return sales;
+    const query = searchQuery.toLowerCase();
+    return sales.filter(group =>
+      group.items.some(item => item.item_name.toLowerCase().includes(query))
+    ).map(group => ({
+      ...group,
+      items: group.items.filter(item => item.item_name.toLowerCase().includes(query))
+    }));
+  }, [sales, searchQuery]);
 
   const loadSalesByDateRange = async (start: string, end: string) => {
     try {
@@ -312,26 +328,6 @@ const Sales = () => {
             {/* Date Range Presets */}
             <div className="flex flex-wrap gap-2 mb-4">
               <button
-                onClick={() => handlePresetChange('last7days')}
-                className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                  datePreset === 'last7days'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                📅 {t('sales.presets.last7days')}
-              </button>
-              <button
-                onClick={() => handlePresetChange('last30days')}
-                className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                  datePreset === 'last30days'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                📅 {t('sales.presets.last30days')}
-              </button>
-              <button
                 onClick={() => handlePresetChange('thisMonth')}
                 className={`px-4 py-2 rounded-md font-medium transition-colors ${
                   datePreset === 'thisMonth'
@@ -339,7 +335,17 @@ const Sales = () => {
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
-                📅 {t('sales.presets.thisMonth')}
+                {t('sales.presets.thisMonth')}
+              </button>
+              <button
+                onClick={() => handlePresetChange('lastMonth')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  datePreset === 'lastMonth'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                {t('sales.presets.lastMonth')}
               </button>
               <button
                 onClick={() => handlePresetChange('custom')}
@@ -349,8 +355,19 @@ const Sales = () => {
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
-                🔧 {t('sales.presets.custom')}
+                {t('sales.presets.custom')}
               </button>
+            </div>
+
+            {/* Product Name Search */}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder={t('sales.searchByProduct')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full md:w-64 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
 
             {/* Custom Date Range Selector */}
@@ -483,10 +500,17 @@ const Sales = () => {
             </div>
           )}
 
+          {/* No Sales Matching Search */}
+          {!loading && sales.length > 0 && filteredSales.length === 0 && searchQuery && (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">{t('sales.noSalesMatchingSearch')}</p>
+            </div>
+          )}
+
           {/* Sales List */}
-          {!loading && sales.length > 0 && (
+          {!loading && filteredSales.length > 0 && (
             <div className="space-y-4">
-              {sales.filter(group => group.items && group.items.length > 0).map((group) => {
+              {filteredSales.filter(group => group.items && group.items.length > 0).map((group) => {
                 const isExpanded = expandedGroups.has(group.group_id);
                 const currencyTotals = getGroupGrandTotalByCurrency(group);
                 const activeCount = getActiveItemsCount(group);

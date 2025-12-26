@@ -131,11 +131,12 @@
     "endDate": "საბოლოო თარიღი",
     "apply": "გამოყენება",
     "presets": {
-      "last7days": "ბოლო 7 დღე",
-      "last30days": "ბოლო 30 დღე",
       "thisMonth": "ეს თვე",
+      "lastMonth": "წინა თვე",
       "custom": "მორგებული დიაპაზონი"
     },
+    "searchByProduct": "ძებნა პროდუქტის სახელით...",
+    "noSalesMatchingSearch": "ძიებას შესაბამისი გაყიდვები არ მოიძებნა",
     "statistics": {
       "title": "გაყიდვების სტატისტიკა",
       "totalItemsSold": "სულ გაყიდული ნივთები",

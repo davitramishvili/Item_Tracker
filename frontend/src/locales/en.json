@@ -131,11 +131,12 @@
     "endDate": "End Date",
     "apply": "Apply",
     "presets": {
-      "last7days": "Last 7 Days",
-      "last30days": "Last 30 Days",
       "thisMonth": "This Month",
+      "lastMonth": "Last Month",
       "custom": "Custom Range"
     },
+    "searchByProduct": "Search by product name...",
+    "noSalesMatchingSearch": "No sales found matching your search",
     "statistics": {
       "title": "Sales Statistics",
       "totalItemsSold": "Total Items Sold",
