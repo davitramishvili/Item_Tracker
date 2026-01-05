@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { saleService, type Sale, type SaleGroup, type SaleStatistics } from '../services/saleService';
+import { itemNameService, type ItemName } from '../services/itemNameService';
 
 type DatePreset = 'all' | 'thisMonth' | 'lastMonth' | 'custom';
 
@@ -31,6 +32,7 @@ const Sales = () => {
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
   const [exchangeRate, setExchangeRate] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [productNames, setProductNames] = useState<ItemName[]>([]);
 
   // Edit sale modal state
   const [showEditSaleModal, setShowEditSaleModal] = useState(false);
@@ -103,6 +105,19 @@ const Sales = () => {
     handlePresetChange('all');
   }, []);
 
+  // Load product names for dropdown
+  useEffect(() => {
+    const loadProductNames = async () => {
+      try {
+        const names = await itemNameService.getAll();
+        setProductNames(names);
+      } catch (err) {
+        console.error('Failed to load product names:', err);
+      }
+    };
+    loadProductNames();
+  }, []);
+
   // Filter sales by product name search
   const filteredSales = useMemo(() => {
     if (!searchQuery.trim()) return sales;
@@ -114,6 +129,62 @@ const Sales = () => {
       items: group.items.filter(item => item.item_name.toLowerCase().includes(query))
     }));
   }, [sales, searchQuery]);
+
+  // Calculate statistics based on filtered data
+  const filteredStatistics = useMemo((): SaleStatistics | null => {
+    if (!statistics) return null;
+
+    // If no filter, return original statistics
+    if (!searchQuery.trim()) return statistics;
+
+    // Calculate statistics from filtered sales
+    const allFilteredItems = filteredSales.flatMap(group =>
+      group.items.filter(item => item.status === 'active')
+    );
+
+    if (allFilteredItems.length === 0) {
+      return {
+        totalItemsSold: 0,
+        totalRevenue: 0,
+        totalCost: 0,
+        totalProfit: 0,
+        byCurrency: []
+      };
+    }
+
+    // Group by currency
+    const byCurrency: Record<string, { itemsSold: number; revenue: number; cost: number }> = {};
+
+    for (const item of allFilteredItems) {
+      const currency = item.currency || 'USD';
+      if (!byCurrency[currency]) {
+        byCurrency[currency] = { itemsSold: 0, revenue: 0, cost: 0 };
+      }
+      byCurrency[currency].itemsSold += Number(item.quantity_sold);
+      byCurrency[currency].revenue += Number(item.total_amount);
+      byCurrency[currency].cost += Number(item.quantity_sold) * Number(item.purchase_price || 0);
+    }
+
+    const byCurrencyArray = Object.entries(byCurrency).map(([currency, data]) => ({
+      currency,
+      itemsSold: data.itemsSold,
+      revenue: data.revenue,
+      cost: data.cost,
+      profit: data.revenue - data.cost
+    }));
+
+    const totalItemsSold = byCurrencyArray.reduce((sum, c) => sum + c.itemsSold, 0);
+    const totalRevenue = byCurrencyArray.reduce((sum, c) => sum + c.revenue, 0);
+    const totalCost = byCurrencyArray.reduce((sum, c) => sum + c.cost, 0);
+
+    return {
+      totalItemsSold,
+      totalRevenue,
+      totalCost,
+      totalProfit: totalRevenue - totalCost,
+      byCurrency: byCurrencyArray
+    };
+  }, [statistics, searchQuery, filteredSales]);
 
   const loadSalesByDateRange = async (start: string, end: string) => {
     try {
@@ -130,10 +201,43 @@ const Sales = () => {
         return;
       }
 
+      console.log('📥 FRONTEND: Fetching sales from', start, 'to', end);
       const data = await saleService.getByDateRange(start, end);
-      setSales(data.sales);
-      setStatistics(data.statistics);
+      console.log('📥 FRONTEND: Raw API response:', data);
+
+      if (data.sales && data.sales.length > 0) {
+        const firstGroup = data.sales[0];
+        console.log('📥 FRONTEND: First group from API:', {
+          group_id: firstGroup.group_id,
+          buyer_name: firstGroup.buyer_name,
+          notes: firstGroup.notes
+        });
+        if (firstGroup.items && firstGroup.items.length > 0) {
+          console.log('📥 FRONTEND: First item from API:', {
+            id: firstGroup.items[0].id,
+            buyer_name: firstGroup.items[0].buyer_name,
+            notes: firstGroup.items[0].notes
+          });
+        }
+      }
+
+      // Simple data transformation - just ensure numbers are numbers
+      const newSales: SaleGroup[] = data.sales ? data.sales.map(group => ({
+        ...group,
+        items: group.items ? group.items.map(item => ({
+          ...item,
+          sale_price: Number(item.sale_price),
+          total_amount: Number(item.total_amount),
+          quantity_sold: Number(item.quantity_sold),
+          purchase_price: Number(item.purchase_price || 0)
+        })) : []
+      })) : [];
+
+      console.log('📥 FRONTEND: Setting sales state with', newSales.length, 'groups');
+      setSales(newSales);
+      setStatistics(data.statistics ? { ...data.statistics } : null);
     } catch (err: any) {
+      console.error('📥 FRONTEND: Load error:', err);
       setError(err.response?.data?.error || 'Failed to load sales');
       setSales([]);
       setStatistics(null);
@@ -149,29 +253,31 @@ const Sales = () => {
   };
 
   // Sale operations
-  const handleEditSale = (sale: Sale) => {
+  const handleEditSale = (sale: Sale, group: SaleGroup) => {
     setEditingSale(sale);
     let formattedDate: string;
-    if (sale.sale_date) {
-      if (sale.sale_date.includes('T') || sale.sale_date.includes('Z')) {
-        const dateObj = new Date(sale.sale_date);
+    const saleDateStr = sale.sale_date || group.sale_date;
+    if (saleDateStr) {
+      if (saleDateStr.includes('T') || saleDateStr.includes('Z')) {
+        const dateObj = new Date(saleDateStr);
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
         formattedDate = `${year}-${month}-${day}`;
       } else {
-        formattedDate = sale.sale_date;
+        formattedDate = saleDateStr;
       }
     } else {
       formattedDate = new Date().toISOString().split('T')[0];
     }
 
+    // Use sale's buyer info, fallback to group's buyer info
     setEditSaleFormData({
       quantity_sold: sale.quantity_sold,
       sale_price: Number(sale.sale_price),
-      buyer_name: sale.buyer_name || '',
-      buyer_phone: sale.buyer_phone || '',
-      notes: sale.notes || '',
+      buyer_name: sale.buyer_name || group.buyer_name || '',
+      buyer_phone: sale.buyer_phone || group.buyer_phone || '',
+      notes: sale.notes || group.notes || '',
       sale_date: formattedDate
     });
     setShowEditSaleModal(true);
@@ -181,21 +287,31 @@ const Sales = () => {
     e.preventDefault();
     if (!editingSale) return;
 
+    console.log('📝 FRONTEND: Starting update for sale:', editingSale.id);
+    console.log('📝 FRONTEND: Form data:', editSaleFormData);
+
     setSubmitting(true);
     try {
-      await saleService.update(editingSale.id, {
+      // Send update to server
+      const updateResult = await saleService.update(editingSale.id, {
         ...editSaleFormData,
         sale_price: Number(editSaleFormData.sale_price),
         quantity_sold: Number(editSaleFormData.quantity_sold)
       });
+      console.log('📝 FRONTEND: Update response:', updateResult);
 
-      // Recalculate dates based on current preset to ensure we reload properly
-      const dates = calculateDates(datePreset);
-      await loadSalesByDateRange(dates.start, dates.end);
+      // Close modal
       setShowEditSaleModal(false);
       setEditingSale(null);
       setError('');
+
+      // Reload data from server to get fresh data
+      console.log('📝 FRONTEND: Reloading sales data...');
+      const dates = calculateDates(datePreset);
+      await loadSalesByDateRange(dates.start, dates.end);
+      console.log('📝 FRONTEND: Reload complete');
     } catch (err: any) {
+      console.error('📝 FRONTEND: Update error:', err);
       setError(err.response?.data?.error || t('errors.failedToUpdateItem'));
     } finally {
       setSubmitting(false);
@@ -377,15 +493,20 @@ const Sales = () => {
               </button>
             </div>
 
-            {/* Product Name Search */}
+            {/* Product Name Search Dropdown */}
             <div className="mb-4">
-              <input
-                type="text"
-                placeholder={t('sales.searchByProduct')}
+              <select
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full md:w-64 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value="">{t('sales.allProducts')}</option>
+                {productNames.map((product) => (
+                  <option key={product.id} value={product.name}>
+                    {product.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Custom Date Range Selector */}
@@ -441,29 +562,32 @@ const Sales = () => {
           )}
 
           {/* Statistics Dashboard */}
-          {!loading && statistics && (
+          {!loading && filteredStatistics && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               {/* Total Items Sold */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-lg shadow-lg p-6">
                 <h3 className="text-sm font-semibold mb-2 opacity-90">{t('sales.statistics.totalItemsSold')}</h3>
-                <div className="text-3xl font-bold">{statistics.totalItemsSold}</div>
+                <div className="text-3xl font-bold">{filteredStatistics.totalItemsSold}</div>
               </div>
 
               {/* Total Revenue */}
               <div className="bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white rounded-lg shadow-lg p-6">
                 <h3 className="text-sm font-semibold mb-2 opacity-90">{t('sales.statistics.totalRevenue')}</h3>
-                {statistics.byCurrency.map(stat => (
+                {filteredStatistics.byCurrency.map(stat => (
                   <div key={stat.currency} className="text-2xl font-bold">
                     {stat.revenue.toFixed(2)} {stat.currency}
                   </div>
                 ))}
+                {filteredStatistics.byCurrency.length === 0 && (
+                  <div className="text-2xl font-bold">0.00</div>
+                )}
               </div>
 
               {/* Total Cost (Always USD) */}
               <div className="bg-gradient-to-r from-orange-600 to-orange-700 dark:from-orange-700 dark:to-orange-800 text-white rounded-lg shadow-lg p-6">
                 <h3 className="text-sm font-semibold mb-2 opacity-90">{t('sales.statistics.totalCost')}</h3>
                 <div className="text-2xl font-bold">
-                  {statistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0).toFixed(2)} USD
+                  {filteredStatistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0).toFixed(2)} USD
                 </div>
               </div>
 
@@ -480,7 +604,7 @@ const Sales = () => {
                   className="w-full px-3 py-2 bg-white/20 text-white placeholder-white/50 border border-white/30 rounded-md focus:outline-none focus:ring-2 focus:ring-white/50"
                 />
                 <div className="text-xs mt-1 opacity-75">
-                  {statistics.byCurrency[0]?.currency || 'GEL'}
+                  {filteredStatistics.byCurrency[0]?.currency || 'GEL'}
                 </div>
               </div>
 
@@ -488,9 +612,9 @@ const Sales = () => {
               <div className={`bg-gradient-to-r ${(() => {
                 if (!exchangeRate) return 'from-gray-500 to-gray-600 dark:from-gray-600 dark:to-gray-700';
                 const rate = parseFloat(exchangeRate);
-                const totalCostUSD = statistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0);
-                const totalRevenue = statistics.byCurrency[0]?.revenue || 0;
-                const revCurrency = statistics.byCurrency[0]?.currency || 'USD';
+                const totalCostUSD = filteredStatistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0);
+                const totalRevenue = filteredStatistics.byCurrency[0]?.revenue || 0;
+                const revCurrency = filteredStatistics.byCurrency[0]?.currency || 'USD';
                 const profit = revCurrency === 'USD' ? totalRevenue - totalCostUSD : totalRevenue - (rate * totalCostUSD);
                 return profit >= 0 ? 'from-purple-600 to-purple-700 dark:from-purple-700 dark:to-purple-800' : 'from-red-600 to-red-700 dark:from-red-700 dark:to-red-800';
               })()} text-white rounded-lg shadow-lg p-6`}>
@@ -499,9 +623,9 @@ const Sales = () => {
                   <div className="text-sm opacity-75 italic">Enter exchange rate</div>
                 ) : (() => {
                   const rate = parseFloat(exchangeRate);
-                  const totalCostUSD = statistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0);
-                  const totalRevenue = statistics.byCurrency[0]?.revenue || 0;
-                  const revCurrency = statistics.byCurrency[0]?.currency || 'USD';
+                  const totalCostUSD = filteredStatistics.byCurrency.reduce((sum, stat) => sum + stat.cost, 0);
+                  const totalRevenue = filteredStatistics.byCurrency[0]?.revenue || 0;
+                  const revCurrency = filteredStatistics.byCurrency[0]?.currency || 'USD';
                   const profit = revCurrency === 'USD' ? totalRevenue - totalCostUSD : totalRevenue - (rate * totalCostUSD);
                   return (
                     <div className="text-2xl font-bold">
@@ -577,29 +701,39 @@ const Sales = () => {
                       </div>
                     </div>
 
-                    {/* Group buyer info */}
-                    {(group.buyer_name || group.buyer_phone || group.notes) && (
-                      <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        {group.buyer_name && (
-                          <div>
-                            <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.buyerName')}:</span>
-                            <div className="text-lg font-semibold dark:text-white">{group.buyer_name}</div>
-                          </div>
-                        )}
-                        {group.buyer_phone && (
-                          <div>
-                            <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.buyerPhone')}:</span>
-                            <div className="text-lg font-semibold dark:text-white">{group.buyer_phone}</div>
-                          </div>
-                        )}
-                        {group.notes && (
-                          <div className="col-span-2">
-                            <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.notes')}:</span>
-                            <div className="text-base dark:text-white mt-1">{group.notes}</div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* Buyer info - for single-item sales, prefer sale values over group values */}
+                    {(() => {
+                      // For single-item sales, get buyer info from the sale itself
+                      const firstSale = group.items[0];
+                      const displayBuyerName = !isMultiItem && firstSale?.buyer_name ? firstSale.buyer_name : group.buyer_name;
+                      const displayBuyerPhone = !isMultiItem && firstSale?.buyer_phone ? firstSale.buyer_phone : group.buyer_phone;
+                      const displayNotes = !isMultiItem && firstSale?.notes ? firstSale.notes : group.notes;
+
+                      if (!displayBuyerName && !displayBuyerPhone && !displayNotes) return null;
+
+                      return (
+                        <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          {displayBuyerName && (
+                            <div>
+                              <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.buyerName')}:</span>
+                              <div className="text-lg font-semibold dark:text-white">{displayBuyerName}</div>
+                            </div>
+                          )}
+                          {displayBuyerPhone && (
+                            <div>
+                              <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.buyerPhone')}:</span>
+                              <div className="text-lg font-semibold dark:text-white">{displayBuyerPhone}</div>
+                            </div>
+                          )}
+                          {displayNotes && (
+                            <div className="col-span-2">
+                              <span className="text-base text-gray-600 dark:text-gray-400">{t('sales.notes')}:</span>
+                              <div className="text-base dark:text-white mt-1">{displayNotes}</div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Items */}
                     <div className="space-y-3">
@@ -640,7 +774,7 @@ const Sales = () => {
                               {sale.status === 'active' && (
                                 <div className="flex gap-2 mt-3">
                                   <button
-                                    onClick={() => handleEditSale(sale)}
+                                    onClick={() => handleEditSale(sale, group)}
                                     className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
                                   >
                                     ✏️ {t('profile.edit')}

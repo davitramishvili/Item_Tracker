@@ -208,6 +208,9 @@ export class SaleModel {
 
     if (updates.length === 0) return false;
 
+    // Always update the updated_at timestamp
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+
     values.push(id, userId);
 
     const [result] = await promisePool.query<ResultSetHeader>(

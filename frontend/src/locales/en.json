@@ -137,6 +137,7 @@
       "custom": "Custom Range"
     },
     "searchByProduct": "Search by product name...",
+    "allProducts": "All Products",
     "noSalesMatchingSearch": "No sales found matching your search",
     "statistics": {
       "title": "Sales Statistics",

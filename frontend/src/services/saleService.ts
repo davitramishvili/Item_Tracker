@@ -8,6 +8,7 @@ export interface Sale {
   item_name: string;
   quantity_sold: number;
   sale_price: number;
+  purchase_price: number;
   total_amount: number;
   currency: string;
   buyer_name: string | null;
@@ -102,7 +103,9 @@ export const saleService = {
 
   // Get sales by date range with statistics
   getByDateRange: async (startDate: string, endDate: string): Promise<SalesDateRangeResponse> => {
-    const response = await api.get(`/sales/range?startDate=${startDate}&endDate=${endDate}`);
+    // Add timestamp to prevent caching
+    const timestamp = Date.now();
+    const response = await api.get(`/sales/range?startDate=${startDate}&endDate=${endDate}&_t=${timestamp}`);
     return response.data;
   },
 
