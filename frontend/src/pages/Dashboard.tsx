@@ -40,7 +40,7 @@ const Dashboard = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [snapshotMessage, setSnapshotMessage] = useState('');
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
 
   // Sell modal state
   const [showSellModal, setShowSellModal] = useState(false);
@@ -1242,12 +1242,12 @@ const Dashboard = () => {
 
       {/* Add Item Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4 dark:text-white">{t('form.addNewItem')}</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[90vh] flex flex-col">
+            <h3 className="text-xl font-bold p-6 pb-4 dark:text-white">{t('form.addNewItem')}</h3>
 
-            <form onSubmit={handleAddItem}>
-              <div className="space-y-4">
+            <form onSubmit={handleAddItem} className="flex flex-col flex-1 overflow-hidden">
+              <div className="space-y-4 overflow-y-auto px-6 flex-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     {t('form.name')} {t('form.required')}
@@ -1369,7 +1369,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-3 mt-6">
+              <div className="flex space-x-3 p-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -1392,12 +1392,12 @@ const Dashboard = () => {
 
       {/* Edit Item Modal */}
       {showEditModal && editingItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4 dark:text-white">{t('form.editItem')}</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[90vh] flex flex-col">
+            <h3 className="text-xl font-bold p-6 pb-4 dark:text-white">{t('form.editItem')}</h3>
 
-            <form onSubmit={handleUpdateItem}>
-              <div className="space-y-4">
+            <form onSubmit={handleUpdateItem} className="flex flex-col flex-1 overflow-hidden">
+              <div className="space-y-4 overflow-y-auto px-6 flex-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     {t('form.name')} {t('form.required')}
@@ -1519,7 +1519,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-3 mt-6">
+              <div className="flex space-x-3 p-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => {
