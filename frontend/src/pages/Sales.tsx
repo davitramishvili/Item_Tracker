@@ -201,27 +201,9 @@ const Sales = () => {
         return;
       }
 
-      console.log('📥 FRONTEND: Fetching sales from', start, 'to', end);
       const data = await saleService.getByDateRange(start, end);
-      console.log('📥 FRONTEND: Raw API response:', data);
 
-      if (data.sales && data.sales.length > 0) {
-        const firstGroup = data.sales[0];
-        console.log('📥 FRONTEND: First group from API:', {
-          group_id: firstGroup.group_id,
-          buyer_name: firstGroup.buyer_name,
-          notes: firstGroup.notes
-        });
-        if (firstGroup.items && firstGroup.items.length > 0) {
-          console.log('📥 FRONTEND: First item from API:', {
-            id: firstGroup.items[0].id,
-            buyer_name: firstGroup.items[0].buyer_name,
-            notes: firstGroup.items[0].notes
-          });
-        }
-      }
-
-      // Simple data transformation - just ensure numbers are numbers
+      // Ensure numeric fields are numbers (MySQL DECIMAL returns as string via JSON)
       const newSales: SaleGroup[] = data.sales ? data.sales.map(group => ({
         ...group,
         items: group.items ? group.items.map(item => ({
@@ -233,11 +215,10 @@ const Sales = () => {
         })) : []
       })) : [];
 
-      console.log('📥 FRONTEND: Setting sales state with', newSales.length, 'groups');
       setSales(newSales);
       setStatistics(data.statistics ? { ...data.statistics } : null);
     } catch (err: any) {
-      console.error('📥 FRONTEND: Load error:', err);
+      console.error('Failed to load sales:', err);
       setError(err.response?.data?.error || 'Failed to load sales');
       setSales([]);
       setStatistics(null);
@@ -287,31 +268,23 @@ const Sales = () => {
     e.preventDefault();
     if (!editingSale) return;
 
-    console.log('📝 FRONTEND: Starting update for sale:', editingSale.id);
-    console.log('📝 FRONTEND: Form data:', editSaleFormData);
-
     setSubmitting(true);
     try {
-      // Send update to server
-      const updateResult = await saleService.update(editingSale.id, {
+      await saleService.update(editingSale.id, {
         ...editSaleFormData,
         sale_price: Number(editSaleFormData.sale_price),
         quantity_sold: Number(editSaleFormData.quantity_sold)
       });
-      console.log('📝 FRONTEND: Update response:', updateResult);
 
       // Close modal
       setShowEditSaleModal(false);
       setEditingSale(null);
       setError('');
 
-      // Reload data from server to get fresh data
-      console.log('📝 FRONTEND: Reloading sales data...');
       const dates = calculateDates(datePreset);
       await loadSalesByDateRange(dates.start, dates.end);
-      console.log('📝 FRONTEND: Reload complete');
     } catch (err: any) {
-      console.error('📝 FRONTEND: Update error:', err);
+      console.error('Failed to update sale:', err);
       setError(err.response?.data?.error || t('errors.failedToUpdateItem'));
     } finally {
       setSubmitting(false);

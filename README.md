@@ -1,207 +1,168 @@
-# Item Tracker
+# Leri Item Tracker
 
-A full-stack web-based inventory tracking system with sales management that allows users to manage stock levels, track price information, create sales (single and multi-item), view historical snapshots, and monitor total inventory value.
+A personal inventory and sales management app built for tracking stock levels, recording sales, and keeping an eye on profit margins across currencies.
 
-## Project Structure
+---
 
-```
-├── backend/          # Node.js + Express + TypeScript backend
-├── frontend/         # React + TypeScript + Vite frontend
-└── docs/            # Documentation (see Deployment section below)
-```
+## What It Does
+
+- **Inventory management** — Add items with quantities, prices (GEL or USD), and categories. Move items through statuses: Need to Order → On the Way → In Stock.
+- **Sales tracking** — Record single or multi-item sales with buyer info. View history by date range. Edit, return, or delete sales.
+- **Profit analysis** — The sales dashboard shows revenue, cost, and profit. Costs are calculated from the purchase price recorded at time of sale.
+- **Historical snapshots** — Daily automated snapshots capture your inventory state so you can look back at any past date.
+- **Multi-language** — UI is available in English and Georgian (ქართული).
+
+---
 
 ## Tech Stack
 
-### Backend
-- Node.js with TypeScript
-- Express.js
-- MySQL
-- JWT Authentication
-- Google OAuth 2.0
-- AWS S3 (image storage)
-- AWS SES (email service)
+**Backend:** Node.js + Express + TypeScript, MySQL, JWT auth, Google OAuth
+**Frontend:** React 19 + TypeScript, Vite, Tailwind CSS, i18next
+**Infrastructure:** AWS EC2, S3 (image storage), SES (email)
 
-### Frontend
-- React 18+ with TypeScript
-- Vite
-- React Router v6
-- Axios
-- Tailwind CSS
+---
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ installed
-- MySQL 8.0 installed and running
-- AWS account (for S3 and SES)
-- Google OAuth credentials
 
-### Backend Setup
-
-1. Navigate to backend directory:
-```bash
-cd backend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create `.env` file from example:
-```bash
-cp .env.example .env
-```
-
-4. Configure your `.env` file with:
-   - Database credentials
-   - JWT secret
-   - Google OAuth credentials
-   - AWS credentials
-
-5. Run database migrations:
-```bash
-npm run migrate
-```
-
-6. Start development server:
-```bash
-npm run dev
-```
-
-The backend will run on `http://localhost:5000`
-
-### Frontend Setup
-
-1. Navigate to frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create `.env` file from example:
-```bash
-cp .env.example .env
-```
-
-4. Configure your `.env` file with:
-   - API URL (backend URL)
-   - Google Client ID
-
-5. Start development server:
-```bash
-npm run dev
-```
-
-The frontend will run on `http://localhost:3000` (or the port Vite assigns)
-
-## Current Status
-
-### ✅ Completed Features
-- **Authentication System**
-  - User registration with email verification
-  - Login system (email/password)
-  - Google OAuth 2.0 integration
-  - Password reset functionality
-  - JWT-based authentication
-
-- **Item Management**
-  - Add, edit, delete items
-  - Quantity tracking with +/- buttons
-  - Multi-currency support (GEL and USD)
-  - Image upload for items (AWS S3)
-  - Price calculations (per item and total)
-  - Search, filtering, and sorting
-  - Pagination
-
-- **Sales Management**
-  - Single-item sales
-  - Multi-item sales (multiple items in one transaction)
-  - Buyer information tracking
-  - Sale history with grouped display
-  - Edit, return, and delete individual sales
-  - Mixed currency support in multi-item sales
-
-- **Historical Tracking**
-  - Daily automated snapshots (1:00 AM Asia/Tbilisi timezone)
-  - Item quantity history for 1 year
-  - Date-based quantity lookup
-  - Automated snapshot cleanup
-
-- **User Profile**
-  - Profile viewing and editing
-  - Email change with re-verification
-  - Password change
-  - Account deletion
-
-## Available Scripts
+- Node.js 18+
+- MySQL 8.0
+- (Optional) AWS account for S3/SES features
 
 ### Backend
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build TypeScript to JavaScript
-- `npm start` - Run production server
-- `npm run migrate` - Run database migrations
-
-### Frontend
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-
-## Database Setup
-
-The application uses MySQL. Create the database and tables using the migration scripts:
 
 ```bash
 cd backend
-node create-users-table.js
-node create-items-table.js
-node create-history-tables.js
-node create-sales-table.js
-node create-sale-groups-table.js
+npm install
+cp .env.example .env   # fill in DB credentials, JWT_SECRET, etc.
+npm run migrate        # sets up the database tables
+npm run dev            # starts on http://localhost:5000
 ```
 
-If you have existing sales, run the migration:
+### Frontend
+
 ```bash
-node migrate-existing-sales.js
+cd frontend
+npm install
+cp .env.example .env   # set VITE_API_URL=http://localhost:5000/api
+npm run dev            # starts on http://localhost:3000
 ```
 
-## AWS Deployment
+Run both in separate terminals and open `http://localhost:3000`.
 
-The application is designed to run on AWS with the following services:
-- **EC2**: Host the backend and frontend
-- **RDS/MySQL on EC2**: Database
-- **S3**: Image storage
-- **SES**: Email service (verification, password reset)
+---
 
-### Deployment Guides
-Comprehensive deployment documentation is available:
-- **Full AWS Deployment Guide** - Step-by-step instructions for deploying on AWS Free Tier
-- **Snapshot Scheduler Deployment** - Guide for deploying the daily snapshot feature
-- Both guides are available in the project documentation files
+## Environment Variables
 
-### Key Features for Production
-- Automated daily snapshots at 1:00 AM (configurable timezone)
-- PM2 process management
-- Nginx reverse proxy
-- SSL/HTTPS support with Let's Encrypt
-- Database backups
-- Monitoring with CloudWatch
+### Backend (`.env`)
 
-## Internationalization
+| Variable | Description |
+|----------|-------------|
+| `DB_HOST` | MySQL host (usually `localhost`) |
+| `DB_PORT` | MySQL port (usually `3306`) |
+| `DB_USER` | MySQL username |
+| `DB_PASSWORD` | MySQL password |
+| `DB_NAME` | Database name |
+| `JWT_SECRET` | Secret key for signing JWT tokens |
+| `JWT_EXPIRES_IN` | Token expiry (e.g. `7d`) |
+| `FRONTEND_URL` | URL of the frontend (for CORS) |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `AWS_REGION` | AWS region (e.g. `us-east-1`) |
+| `AWS_ACCESS_KEY_ID` | AWS access key |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key |
+| `AWS_S3_BUCKET` | S3 bucket name for image uploads |
+| `EMAIL_FROM` | Sender address for emails (SES) |
 
-The application supports multiple languages:
-- English (en)
-- Georgian (ka)
+### Frontend (`.env`)
 
-Translation files are located in `frontend/src/locales/`
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Backend API URL (e.g. `http://localhost:5000/api`) |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client ID |
 
-## License
+---
 
-ISC
+## Useful Commands
+
+### Backend
+```bash
+npm run dev          # development server with hot reload
+npm run build        # compile TypeScript → JavaScript
+npm start            # run compiled production build
+npm run migrate      # run database migrations
+npm test             # run unit tests
+npm run test:coverage  # run tests with coverage report
+```
+
+### Frontend
+```bash
+npm run dev       # development server
+npm run build     # production build (outputs to dist/)
+npm run preview   # preview the production build locally
+```
+
+---
+
+## Deployment (AWS)
+
+The app runs on an EC2 instance (Ubuntu 22.04) with:
+- Nginx as the reverse proxy / static file server for the frontend
+- PM2 to keep the backend process running
+- MySQL on the same instance
+
+To deploy after pushing to the `development` branch, SSH in and run:
+
+```bash
+cd ~/Item_Tracker/ && git pull origin development \
+  && cd backend && npm install && npm run build \
+  && cd ../frontend && npm install && npm run build \
+  && sudo rm -rf /var/www/html/* && sudo cp -r dist/* /var/www/html/ \
+  && sudo systemctl reload nginx \
+  && cd ../backend && pm2 restart item-tracker-api \
+  && pm2 logs item-tracker-api --lines 30
+```
+
+See `docs/DEPLOYMENT_GUIDE.md` for the full setup guide including SSL, domain config, and CloudWatch.
+
+---
+
+## Project Structure
+
+```
+├── backend/
+│   ├── src/
+│   │   ├── server.ts          # entry point
+│   │   ├── config/            # DB connection, migrations, schema
+│   │   ├── controllers/       # request handlers
+│   │   ├── models/            # DB query logic
+│   │   ├── routes/            # API route definitions
+│   │   ├── services/          # business logic (auth, email, snapshots)
+│   │   ├── middlewares/       # JWT auth middleware
+│   │   └── utils/             # JWT helpers, password hashing, validation
+│   └── tests/                 # unit tests (Jest + ts-jest)
+│
+├── frontend/
+│   └── src/
+│       ├── pages/             # page components (Dashboard, Sales, History, etc.)
+│       ├── components/        # shared UI components
+│       ├── services/          # API service layer (Axios)
+│       ├── context/           # React contexts (Auth, Theme)
+│       └── locales/           # i18n translation files (en, ka)
+│
+├── docs/                      # deployment guides
+├── CLAUDE_PROJECT_GUIDE.md    # developer reference (for Claude/AI assistance)
+└── PROGRESS_TRACKER.md        # session-to-session task tracking
+```
+
+---
+
+## Languages
+
+Switch between English and Georgian using the language button in the top navigation bar. Translation files live in `frontend/src/locales/`.
+
+---
 
 ## Author
 

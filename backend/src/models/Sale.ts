@@ -241,7 +241,7 @@ export class SaleModel {
         sg.sale_date as group_sale_date,
         sg.created_at as group_created_at,
         s.id, s.user_id, s.sale_group_id, s.item_id, s.item_name,
-        s.quantity_sold, s.sale_price, s.total_amount, s.currency,
+        s.quantity_sold, s.sale_price, s.purchase_price, s.total_amount, s.currency,
         s.buyer_name, s.buyer_phone, s.notes, s.sale_date,
         s.status, s.returned_at, s.created_at, s.updated_at
        FROM sale_groups sg
@@ -278,6 +278,7 @@ export class SaleModel {
           item_name: row.item_name,
           quantity_sold: row.quantity_sold,
           sale_price: row.sale_price,
+          purchase_price: row.purchase_price,
           total_amount: row.total_amount,
           currency: row.currency,
           buyer_name: row.buyer_name,
@@ -306,7 +307,7 @@ export class SaleModel {
         sg.sale_date as group_sale_date,
         sg.created_at as group_created_at,
         s.id, s.user_id, s.sale_group_id, s.item_id, s.item_name,
-        s.quantity_sold, s.sale_price, s.total_amount, s.currency,
+        s.quantity_sold, s.sale_price, s.purchase_price, s.total_amount, s.currency,
         s.buyer_name, s.buyer_phone, s.notes, s.sale_date,
         s.status, s.returned_at, s.created_at, s.updated_at
        FROM sale_groups sg
@@ -343,6 +344,7 @@ export class SaleModel {
           item_name: row.item_name,
           quantity_sold: row.quantity_sold,
           sale_price: row.sale_price,
+          purchase_price: row.purchase_price,
           total_amount: row.total_amount,
           currency: row.currency,
           buyer_name: row.buyer_name,
