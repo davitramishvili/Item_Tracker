@@ -155,15 +155,12 @@ export const getSalesByDate = async (req: Request, res: Response): Promise<void>
     const userId = req.user!.userId;
     const { date } = req.query;
 
-    console.log('📅 getSalesByDate called - userId:', userId, 'date:', date);
-
     if (!date || typeof date !== 'string') {
       res.status(400).json({ error: 'Date is required' });
       return;
     }
 
     const salesGroups = await SaleModel.findGroupedByDate(userId, date);
-    console.log('✅ Found', salesGroups.length, 'sale groups');
     res.json({ sales: salesGroups });
   } catch (error) {
     console.error('Get sales error:', error);
@@ -176,8 +173,6 @@ export const getSalesByDateRange = async (req: Request, res: Response): Promise<
   try {
     const userId = req.user!.userId;
     const { startDate, endDate } = req.query;
-
-    console.log('📅 getSalesByDateRange called - userId:', userId, 'startDate:', startDate, 'endDate:', endDate);
 
     if (!startDate || typeof startDate !== 'string') {
       res.status(400).json({ error: 'Start date is required' });
@@ -204,32 +199,9 @@ export const getSalesByDateRange = async (req: Request, res: Response): Promise<
 
     // Get grouped sales
     const salesGroups = await SaleModel.findGroupedByDateRange(userId, startDate, endDate);
-    console.log('✅ Found', salesGroups.length, 'sale groups');
-    if (salesGroups.length > 0) {
-      const firstGroup = salesGroups[0];
-      console.log('🔍 First GROUP in response:', {
-        group_id: firstGroup.group_id,
-        group_buyer_name: firstGroup.buyer_name,
-        group_notes: firstGroup.notes,
-        created_at: firstGroup.created_at
-      });
-      if (firstGroup.items?.length > 0) {
-        const firstItem = firstGroup.items[0];
-        console.log('🔍 First ITEM in response:', {
-          id: firstItem.id,
-          item_buyer_name: firstItem.buyer_name,
-          item_notes: firstItem.notes,
-          quantity: firstItem.quantity_sold,
-          price: firstItem.sale_price,
-          total: firstItem.total_amount,
-          updated_at: firstItem.updated_at
-        });
-      }
-    }
 
     // Get statistics
     const stats = await SaleModel.getStatsByDateRange(userId, startDate, endDate);
-    console.log('📊 Statistics:', stats);
 
     // Process statistics to calculate totals
     let totalItemsSold = 0;
@@ -274,24 +246,11 @@ export const updateSale = async (req: Request, res: Response): Promise<void> => 
     const saleId = parseInt(req.params.id);
     const { quantity_sold, sale_price, buyer_name, buyer_phone, notes, sale_date } = req.body;
 
-    console.log('📝 UPDATE SALE REQUEST:', {
-      saleId,
-      userId,
-      body: { quantity_sold, sale_price, buyer_name, buyer_phone, notes, sale_date }
-    });
-
     const sale = await SaleModel.findById(saleId, userId);
     if (!sale) {
       res.status(404).json({ error: 'Sale not found' });
       return;
     }
-
-    console.log('📝 FOUND SALE:', {
-      id: sale.id,
-      sale_group_id: sale.sale_group_id,
-      current_buyer_name: sale.buyer_name,
-      current_notes: sale.notes
-    });
 
     // If quantity is being updated, verify stock availability
     if (quantity_sold !== undefined && quantity_sold !== sale.quantity_sold) {
@@ -328,12 +287,6 @@ export const updateSale = async (req: Request, res: Response): Promise<void> => 
     }
 
     // Also update the sale_groups table with buyer info
-    console.log('📝 CHECKING GROUP UPDATE:', {
-      sale_group_id: sale.sale_group_id,
-      buyer_name_defined: buyer_name !== undefined,
-      notes_defined: notes !== undefined
-    });
-
     if (sale.sale_group_id && (buyer_name !== undefined || buyer_phone !== undefined || notes !== undefined || sale_date !== undefined)) {
       const groupUpdateData: UpdateSaleGroupData = {};
       if (buyer_name !== undefined) groupUpdateData.buyer_name = buyer_name;
@@ -341,31 +294,10 @@ export const updateSale = async (req: Request, res: Response): Promise<void> => 
       if (notes !== undefined) groupUpdateData.notes = notes;
       if (sale_date !== undefined) groupUpdateData.sale_date = sale_date;
 
-      console.log('📝 UPDATING SALE GROUP:', { groupId: sale.sale_group_id, groupUpdateData });
-      const groupUpdated = await SaleGroupModel.update(sale.sale_group_id, userId, groupUpdateData);
-      console.log('✅ Sale group update result:', groupUpdated);
-
-      // Verify the group was updated
-      const updatedGroup = await SaleGroupModel.findById(sale.sale_group_id, userId);
-      console.log('📝 VERIFIED GROUP AFTER UPDATE:', {
-        id: updatedGroup?.id,
-        buyer_name: updatedGroup?.buyer_name,
-        notes: updatedGroup?.notes
-      });
-    } else {
-      console.log('⚠️ SKIPPING GROUP UPDATE - no sale_group_id or no fields to update');
+      await SaleGroupModel.update(sale.sale_group_id, userId, groupUpdateData);
     }
 
-    // Fetch the updated sale to return to client
     const updatedSale = await SaleModel.findById(saleId, userId);
-    console.log('✅ Sale updated - ID:', saleId, 'New values:', {
-      quantity_sold: updatedSale?.quantity_sold,
-      sale_price: updatedSale?.sale_price,
-      total_amount: updatedSale?.total_amount,
-      buyer_name: updatedSale?.buyer_name,
-      notes: updatedSale?.notes,
-      updated_at: updatedSale?.updated_at
-    });
     res.json({ message: 'Sale updated successfully', sale: updatedSale });
   } catch (error) {
     console.error('Update sale error:', error);
